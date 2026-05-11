@@ -1,0 +1,11 @@
+body {
+  background: #0c0c0d;
+  margin: 0;
+  color: #e8e8e8;
+  font-family: "Geist", system-ui, sans-serif;
+}
+
+.truncate-fade {
+  -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+}

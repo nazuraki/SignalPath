@@ -1,0 +1,53 @@
+# Project Orchestrator — config
+# Copy this file to `config.toml` and edit to match your workspace.
+# `config.toml` is gitignored; this example is the committed reference.
+
+[ui]
+title = "Project Orchestrator"
+subtitle = "local"
+
+[server]
+port = 3001
+
+[jira]
+base      = "https://your-org.atlassian.net"
+email     = "you@example.com"
+# https://id.atlassian.com/manage-profile/security/api-tokens
+api_token = ""
+# Jira field used for effort estimation. The default returns seconds and is
+# divided by 3600 → hours. Use a custom field id (e.g. "customfield_10016")
+# for true story points.
+sp_field  = "timeoriginalestimate"
+
+# Epic keys to display on the dashboard
+epics = [
+  "PROJ-1",
+  "PROJ-2",
+]
+
+# ----------------------------------------------------------------------------
+# Service-parity matrix (optional)
+# Set `epic` to the key of an epic in [jira].epics to render a service × module
+# matrix for that epic. Leave empty to disable.
+# ----------------------------------------------------------------------------
+[parity]
+epic = ""
+
+# Jira component name → service row label. Multiple components can share a row.
+[parity.svc_map]
+# "Service A Core" = "service-a"
+# "Service B Core" = "service-b"
+
+# Jira label → service row label (fallback for cross-project tickets that
+# can't use components — add one of these labels to place the ticket in the matrix).
+[parity.svc_label_map]
+# "ServiceC_label" = "service-c"
+
+# Jira label → module column label. Insertion order = column order.
+[parity.mod_map]
+# "module-a-label" = "Module A"
+# "module-b-label" = "Module B"
+
+# Service row → list of module column keys that are not applicable.
+[parity.na]
+# "service-a" = ["module-b-label"]
