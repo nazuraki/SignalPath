@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Epic, EpicPair, Issue } from '../../../shared/types.ts';
+import type { Issue, Workstream, WorkstreamPair } from '../../../shared/types.ts';
 import { buildCombinedSeries, computeBurndown, pointsOf, remainingHours } from './burndown.ts';
 
 const issue = (overrides: Partial<Issue> = {}): Issue => ({
@@ -13,9 +13,9 @@ const issue = (overrides: Partial<Issue> = {}): Issue => ({
   ...overrides,
 });
 
-const epic = (issues: Issue[], overrides: Partial<Epic> = {}): Epic => ({
+const workstream = (issues: Issue[], overrides: Partial<Workstream> = {}): Workstream => ({
   key: 'E-1',
-  summary: 'Epic',
+  summary: 'Workstream',
   status: 'In Progress',
   created: '2025-01-01',
   duedate: null,
@@ -36,22 +36,22 @@ describe('pointsOf', () => {
 
 describe('remainingHours', () => {
   it('sums points of unresolved issues only', () => {
-    const e = epic([
+    const w = workstream([
       issue({ points: 3, resolutiondate: null }),
       issue({ points: 5, resolutiondate: '2025-02-01' }),
       issue({ points: null, resolutiondate: null }),
     ]);
-    expect(remainingHours(e)).toBe(4);
+    expect(remainingHours(w)).toBe(4);
   });
 
-  it('returns 0 for an empty epic', () => {
-    expect(remainingHours(epic([]))).toBe(0);
+  it('returns 0 for an empty workstream', () => {
+    expect(remainingHours(workstream([]))).toBe(0);
   });
 });
 
 describe('computeBurndown', () => {
   it('reports totals, counts, and percent complete', () => {
-    const e = epic(
+    const w = workstream(
       [
         issue({ key: 'X-1', points: 4, resolutiondate: '2025-01-05' }),
         issue({ key: 'X-2', points: 6, resolutiondate: null }),
@@ -59,7 +59,7 @@ describe('computeBurndown', () => {
       ],
       { projectedEnd: '2025-02-01' },
     );
-    const bd = computeBurndown(e);
+    const bd = computeBurndown(w);
     expect(bd.totalPoints).toBe(12);
     expect(bd.completedPoints).toBe(6);
     expect(bd.remaining).toBe(6);
@@ -68,8 +68,8 @@ describe('computeBurndown', () => {
     expect(bd.pctComplete).toBe(50);
   });
 
-  it('returns 0% for an empty epic without dividing by zero', () => {
-    const bd = computeBurndown(epic([], { projectedEnd: '2025-02-01' }));
+  it('returns 0% for an empty workstream without dividing by zero', () => {
+    const bd = computeBurndown(workstream([], { projectedEnd: '2025-02-01' }));
     expect(bd.totalPoints).toBe(0);
     expect(bd.pctComplete).toBe(0);
     expect(bd.remaining).toBe(0);
@@ -77,7 +77,7 @@ describe('computeBurndown', () => {
 
   it('emits a series that includes ideal and (for past dates) actual values', () => {
     const bd = computeBurndown(
-      epic(
+      workstream(
         [
           issue({ key: 'X-1', points: 2, resolutiondate: '2025-01-03' }),
           issue({ key: 'X-2', points: 2, resolutiondate: null }),
@@ -91,10 +91,10 @@ describe('computeBurndown', () => {
 });
 
 describe('buildCombinedSeries', () => {
-  it('keys actual values by epic key and sorts by date', () => {
-    const pairs: EpicPair[] = [
+  it('keys actual values by workstream key and sorts by date', () => {
+    const pairs: WorkstreamPair[] = [
       {
-        epic: epic([], { key: 'A' }),
+        workstream: workstream([], { key: 'A' }),
         bd: {
           series: [
             { date: '2025-01-02', label: 'Jan 2', actual: 5, ideal: 10 },
@@ -109,7 +109,7 @@ describe('buildCombinedSeries', () => {
         },
       },
       {
-        epic: epic([], { key: 'B' }),
+        workstream: workstream([], { key: 'B' }),
         bd: {
           series: [
             { date: '2025-01-01', label: 'Jan 1', actual: 3, ideal: 3 },

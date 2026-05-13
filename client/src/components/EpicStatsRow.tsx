@@ -1,10 +1,10 @@
-import type { BurndownResult, Epic } from '../../../shared/types.ts';
+import type { BurndownResult, Workstream } from '../../../shared/types.ts';
 import { useJiraUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
 import StatusPill from './StatusPill.tsx';
 
 interface Props {
-  epic: Epic;
+  workstream: Workstream;
   bd: BurndownResult;
   color: string;
   isActive: boolean;
@@ -12,7 +12,14 @@ interface Props {
   onClick: () => void;
 }
 
-export default function EpicStatsRow({ epic, bd, color, isActive, isAnyActive, onClick }: Props) {
+export default function EpicStatsRow({
+  workstream,
+  bd,
+  color,
+  isActive,
+  isAnyActive,
+  onClick,
+}: Props) {
   const jiraUrl = useJiraUrl();
   const dimmed = isAnyActive && !isActive;
   return (
@@ -43,21 +50,21 @@ export default function EpicStatsRow({ epic, bd, color, isActive, isAnyActive, o
           style={{ backgroundColor: isActive ? color : '#3f3f46' }}
         />
         <a
-          href={jiraUrl(epic.key)}
+          href={jiraUrl(workstream.key)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           style={{ fontFamily: '"JetBrains Mono", monospace' }}
           className="text-xs text-neutral-400 hover:text-amber-400 shrink-0 w-[5.5rem] transition-colors"
         >
-          {epic.key}
+          {workstream.key}
         </a>
-        <StatusPill status={epic.status} />
+        <StatusPill status={workstream.status} />
         <span
           style={{ fontFamily: '"Newsreader", serif' }}
           className="flex-1 text-sm text-neutral-200 truncate min-w-0 overflow-hidden whitespace-nowrap"
         >
-          {epic.summary}
+          {workstream.summary}
         </span>
         <div
           className="flex items-center gap-5 shrink-0 text-xs"
@@ -81,7 +88,7 @@ export default function EpicStatsRow({ epic, bd, color, isActive, isAnyActive, o
             {`${fmt1(bd.remaining)}h left`}
           </span>
           <span className="text-neutral-600 w-20 text-right hidden md:inline">
-            {epic.projectedEnd ? `proj ${fmtDate(epic.projectedEnd)}` : ''}
+            {workstream.projectedEnd ? `proj ${fmtDate(workstream.projectedEnd)}` : ''}
           </span>
         </div>
       </div>

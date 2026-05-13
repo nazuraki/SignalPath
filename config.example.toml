@@ -9,7 +9,15 @@ subtitle = "local"
 [server]
 port = 3001
 
-[jira]
+# ----------------------------------------------------------------------------
+# Ticket provider
+# Supported: "jira" | "github" | "none"
+# ----------------------------------------------------------------------------
+[tickets]
+provider = "jira"
+
+# ---- Jira (used when provider = "jira") ------------------------------------
+[tickets.jira]
 base      = "https://your-org.atlassian.net"
 email     = "you@example.com"
 # https://id.atlassian.com/manage-profile/security/api-tokens
@@ -18,17 +26,45 @@ api_token = ""
 # divided by 3600 → hours. Use a custom field id (e.g. "customfield_10016")
 # for true story points.
 sp_field  = "timeoriginalestimate"
-
 # Epic keys to display on the dashboard
 epics = [
   "PROJ-1",
   "PROJ-2",
 ]
 
+# ---- GitHub Issues (used when provider = "github") -------------------------
+# Each [[tickets.github.repos]] entry is one or more workstreams.
+# If `milestones` is set, each milestone number becomes a separate workstream.
+# If `milestones` is omitted, the repo itself is the workstream (all issues).
+#
+# [tickets.github]
+# token = "ghp_..."   # PAT with repo read access; omit for public repos
+#
+# [[tickets.github.repos]]
+# owner      = "myorg"
+# repo       = "backend"
+# milestones = [1, 2]   # optional — omit to treat the whole repo as one workstream
+#
+# [[tickets.github.repos]]
+# owner = "myorg"
+# repo  = "frontend"    # no milestones — whole repo is the workstream
+
+# ----------------------------------------------------------------------------
+# Deploy provider — reserved for future integrations (Argo CD, Docker, etc.)
+# ----------------------------------------------------------------------------
+[deploys]
+provider = "none"
+
+# ----------------------------------------------------------------------------
+# Metrics provider — reserved for future integrations (Grafana, Datadog, etc.)
+# ----------------------------------------------------------------------------
+[metrics]
+provider = "none"
+
 # ----------------------------------------------------------------------------
 # Service-parity matrix (optional)
-# Set `epic` to the key of an epic in [jira].epics to render a service × module
-# matrix for that epic. Leave empty to disable.
+# Set `epic` to the key of a workstream to render a service × module matrix.
+# Leave empty to disable.
 # ----------------------------------------------------------------------------
 [parity]
 epic = ""

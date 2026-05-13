@@ -1,15 +1,15 @@
-import type { Epic } from '../../../shared/types.ts';
+import type { Workstream } from '../../../shared/types.ts';
 import { useConfig, useJiraUrl } from '../lib/config-context.ts';
 import { buildParityMatrix } from '../lib/parity.ts';
 
 interface Props {
-  epic: Epic;
+  workstream: Workstream;
 }
 
-export default function ParityMatrix({ epic }: Props) {
+export default function ParityMatrix({ workstream }: Props) {
   const { parity } = useConfig();
   const jiraUrl = useJiraUrl();
-  const { services, modules, cells } = buildParityMatrix(epic, parity);
+  const { services, modules, cells } = buildParityMatrix(workstream, parity);
 
   if (services.length === 0) {
     return (
