@@ -8,7 +8,7 @@ export interface Issue {
   components: string[];
 }
 
-export interface Epic {
+export interface Workstream {
   key: string;
   summary: string;
   status: string;
@@ -32,25 +32,55 @@ export interface UIConfig {
   subtitle: string;
 }
 
+export interface JiraTicketConfig {
+  base: string;
+  email: string;
+  apiToken: string;
+  spField: string;
+  epics: string[];
+}
+
+export interface GitHubRepoConfig {
+  owner: string;
+  repo: string;
+  milestones?: number[];
+}
+
+export interface GitHubTicketConfig {
+  token: string;
+  repos: GitHubRepoConfig[];
+}
+
+export interface TicketsConfig {
+  provider: 'jira' | 'github' | 'none';
+  jira?: JiraTicketConfig;
+  github?: GitHubTicketConfig;
+}
+
+export interface DeploysConfig {
+  provider: 'none';
+}
+
+export interface MetricsConfig {
+  provider: 'none';
+}
+
 /** Server-side, full config. */
 export interface ServerConfig {
   ui: UIConfig;
   server: {
     port: number;
   };
-  jira: {
-    base: string;
-    email: string;
-    apiToken: string;
-    spField: string;
-    epics: string[];
-  };
+  tickets: TicketsConfig;
+  deploys: DeploysConfig;
+  metrics: MetricsConfig;
   parity: ParityConfig;
 }
 
 /** Shape returned by GET /api/config. */
 export interface ClientConfig {
   ui: UIConfig;
+  /** Base URL for linking out to Jira; empty string when provider is not Jira. */
   jiraBase: string;
   parity: ParityConfig;
 }
@@ -72,8 +102,8 @@ export interface BurndownResult {
   doneCount: number;
 }
 
-export interface EpicPair {
-  epic: Epic;
+export interface WorkstreamPair {
+  workstream: Workstream;
   bd: BurndownResult;
 }
 

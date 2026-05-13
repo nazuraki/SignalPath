@@ -1,9 +1,9 @@
 import type {
   BurndownPoint,
   BurndownResult,
-  Epic,
-  EpicPair,
   Issue,
+  Workstream,
+  WorkstreamPair,
 } from '../../../shared/types.ts';
 
 export const HOURS_PER_WEEK = 30;
@@ -12,17 +12,17 @@ export const EPIC_COLORS = ['#fbbf24', '#22d3ee', '#a78bfa', '#34d399', '#fb7185
 
 export const pointsOf = (i: Issue): number => (typeof i.points === 'number' ? i.points : 1);
 
-export const remainingHours = (epic: Epic): number =>
-  (epic.issues || []).filter((i) => !i.resolutiondate).reduce((s, i) => s + pointsOf(i), 0);
+export const remainingHours = (workstream: Workstream): number =>
+  (workstream.issues || []).filter((i) => !i.resolutiondate).reduce((s, i) => s + pointsOf(i), 0);
 
-export const computeBurndown = (epic: Epic): BurndownResult => {
-  const issues = epic.issues || [];
+export const computeBurndown = (workstream: Workstream): BurndownResult => {
+  const issues = workstream.issues || [];
   const totalPoints = issues.reduce((s, i) => s + pointsOf(i), 0);
 
-  const created = new Date(`${epic.created}T00:00:00`);
+  const created = new Date(`${workstream.created}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const projEnd = epic.projectedEnd ? new Date(`${epic.projectedEnd}T00:00:00`) : null;
+  const projEnd = workstream.projectedEnd ? new Date(`${workstream.projectedEnd}T00:00:00`) : null;
   const endDate = projEnd && projEnd > today ? projEnd : today;
 
   const resolved = issues
@@ -94,16 +94,16 @@ export const computeBurndown = (epic: Epic): BurndownResult => {
 interface CombinedRow {
   date: string;
   label: string;
-  [epicKey: string]: string | number | null;
+  [key: string]: string | number | null;
 }
 
-export const buildCombinedSeries = (pairs: EpicPair[]): CombinedRow[] => {
+export const buildCombinedSeries = (pairs: WorkstreamPair[]): CombinedRow[] => {
   const map = new Map<string, CombinedRow>();
-  for (const { epic, bd } of pairs) {
+  for (const { workstream, bd } of pairs) {
     for (const pt of bd.series) {
       if (!map.has(pt.date)) map.set(pt.date, { date: pt.date, label: pt.label });
       const row = map.get(pt.date);
-      if (row && pt.actual !== null) row[epic.key] = pt.actual;
+      if (row && pt.actual !== null) row[workstream.key] = pt.actual;
     }
   }
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));

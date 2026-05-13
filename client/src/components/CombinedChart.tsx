@@ -7,16 +7,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { EpicPair } from '../../../shared/types.ts';
+import type { WorkstreamPair } from '../../../shared/types.ts';
 import { buildCombinedSeries, EPIC_COLORS } from '../lib/burndown.ts';
 import { fmt1 } from '../lib/format.ts';
 
 interface Props {
-  pairs: EpicPair[];
-  activeEpic: string | null;
+  pairs: WorkstreamPair[];
+  activeWorkstream: string | null;
 }
 
-export default function CombinedChart({ pairs, activeEpic }: Props) {
+export default function CombinedChart({ pairs, activeWorkstream }: Props) {
   const series = buildCombinedSeries(pairs);
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -49,20 +49,20 @@ export default function CombinedChart({ pairs, activeEpic }: Props) {
             return [n !== null ? `${fmt1(n)}h` : '—', String(name)];
           }}
         />
-        {pairs.map(({ epic }, i) => {
+        {pairs.map(({ workstream }, i) => {
           const color = EPIC_COLORS[i % EPIC_COLORS.length];
-          const highlighted = activeEpic === null || activeEpic === epic.key;
+          const highlighted = activeWorkstream === null || activeWorkstream === workstream.key;
           return (
             <Line
-              key={epic.key}
+              key={workstream.key}
               type="stepAfter"
-              dataKey={epic.key}
+              dataKey={workstream.key}
               stroke={color}
-              strokeWidth={activeEpic === epic.key ? 2.5 : 1.5}
+              strokeWidth={activeWorkstream === workstream.key ? 2.5 : 1.5}
               strokeOpacity={highlighted ? 1 : 0.12}
               dot={false}
               connectNulls={true}
-              name={epic.key}
+              name={workstream.key}
               isAnimationActive={false}
             />
           );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EpicPair, StateMap, TicketState } from '../../../shared/types.ts';
+import type { StateMap, TicketState, WorkstreamPair } from '../../../shared/types.ts';
 import { EPIC_COLORS } from '../lib/burndown.ts';
 import { useConfig, useJiraUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
@@ -8,7 +8,7 @@ import ParityMatrix from './ParityMatrix.tsx';
 import StatusPill from './StatusPill.tsx';
 
 interface Props {
-  pairs: EpicPair[];
+  pairs: WorkstreamPair[];
   activeTab: string | null;
   onTabChange: (key: string) => void;
   state: StateMap;
@@ -25,11 +25,11 @@ export default function TicketPanel({
   const { parity } = useConfig();
   const jiraUrl = useJiraUrl();
   const [openAnnotation, setOpenAnnotation] = useState<string | null>(null);
-  const pair = pairs.find((p) => p.epic.key === activeTab) || pairs[0];
+  const pair = pairs.find((p) => p.workstream.key === activeTab) || pairs[0];
   if (!pair) return null;
-  const { epic } = pair;
+  const { workstream } = pair;
 
-  const issues = [...(epic.issues || [])].sort((a, b) => {
+  const issues = [...(workstream.issues || [])].sort((a, b) => {
     const w = (i: typeof a): number => {
       if (i.resolutiondate) return 2;
       const s = i.status.toLowerCase();
@@ -42,14 +42,14 @@ export default function TicketPanel({
   return (
     <div className="border border-neutral-800">
       <div className="flex border-b border-neutral-800 overflow-x-auto">
-        {pairs.map(({ epic: e }, i) => {
+        {pairs.map(({ workstream: w }, i) => {
           const color = EPIC_COLORS[i % EPIC_COLORS.length];
-          const isActive = e.key === activeTab;
+          const isActive = w.key === activeTab;
           return (
             <button
               type="button"
-              key={e.key}
-              onClick={() => onTabChange(e.key)}
+              key={w.key}
+              onClick={() => onTabChange(w.key)}
               style={{ fontFamily: '"JetBrains Mono", monospace' }}
               className={`px-4 py-3 text-xs tracking-wider whitespace-nowrap transition-colors border-r border-neutral-800 flex items-center gap-2 ${
                 isActive
@@ -61,16 +61,16 @@ export default function TicketPanel({
                 className="w-1.5 h-1.5 rounded-full shrink-0 transition-colors"
                 style={{ backgroundColor: isActive ? color : '#3f3f46' }}
               />
-              {e.key}
+              {w.key}
             </button>
           );
         })}
         <div className="flex-1 border-b border-transparent" />
       </div>
 
-      {parity.epic && epic.key === parity.epic && (
+      {parity.epic && workstream.key === parity.epic && (
         <div className="border-b border-neutral-800">
-          <ParityMatrix epic={epic} />
+          <ParityMatrix workstream={workstream} />
         </div>
       )}
 

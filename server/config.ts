@@ -19,16 +19,33 @@ if (!existsSync(CONFIG_PATH)) {
 
 const raw = readFileSync(CONFIG_PATH, 'utf8');
 
+type RawGitHubRepo = {
+  owner?: string;
+  repo?: string;
+  milestones?: number[];
+};
+
 type RawConfig = {
   ui?: { title?: string; subtitle?: string };
   server?: { port?: number };
-  jira?: {
-    base?: string;
-    email?: string;
-    api_token?: string;
-    sp_field?: string;
-    epics?: string[];
+  /** Legacy key — emit a migration error if present. */
+  jira?: unknown;
+  tickets?: {
+    provider?: string;
+    jira?: {
+      base?: string;
+      email?: string;
+      api_token?: string;
+      sp_field?: string;
+      epics?: string[];
+    };
+    github?: {
+      token?: string;
+      repos?: RawGitHubRepo[];
+    };
   };
+  deploys?: { provider?: string };
+  metrics?: { provider?: string };
   parity?: {
     epic?: string;
     svc_map?: Record<string, string>;
@@ -46,6 +63,15 @@ try {
   process.exit(1);
 }
 
+if (parsed.jira !== undefined) {
+  console.error(
+    'config.toml has a legacy [jira] section. Migrate to [tickets] / [tickets.jira] — see config.example.toml.',
+  );
+  process.exit(1);
+}
+
+const ticketsProvider = (parsed.tickets?.provider ?? 'none') as ServerConfig['tickets']['provider'];
+
 export const config: ServerConfig = {
   ui: {
     title: parsed.ui?.title ?? 'Project Orchestrator',
@@ -54,12 +80,33 @@ export const config: ServerConfig = {
   server: {
     port: parsed.server?.port ?? 3001,
   },
-  jira: {
-    base: parsed.jira?.base ?? '',
-    email: parsed.jira?.email ?? '',
-    apiToken: parsed.jira?.api_token ?? '',
-    spField: parsed.jira?.sp_field ?? 'timeoriginalestimate',
-    epics: parsed.jira?.epics ?? [],
+  tickets: {
+    provider: ticketsProvider,
+    jira: parsed.tickets?.jira
+      ? {
+          base: parsed.tickets.jira.base ?? '',
+          email: parsed.tickets.jira.email ?? '',
+          apiToken: parsed.tickets.jira.api_token ?? '',
+          spField: parsed.tickets.jira.sp_field ?? 'timeoriginalestimate',
+          epics: parsed.tickets.jira.epics ?? [],
+        }
+      : undefined,
+    github: parsed.tickets?.github
+      ? {
+          token: parsed.tickets.github.token ?? '',
+          repos: (parsed.tickets.github.repos ?? []).map((r) => ({
+            owner: r.owner ?? '',
+            repo: r.repo ?? '',
+            milestones: r.milestones,
+          })),
+        }
+      : undefined,
+  },
+  deploys: {
+    provider: 'none',
+  },
+  metrics: {
+    provider: 'none',
   },
   parity: {
     epic: parsed.parity?.epic || null,

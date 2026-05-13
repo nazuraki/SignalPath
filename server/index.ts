@@ -5,13 +5,15 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from './config.ts';
-import { fetchEpic } from './jira.ts';
+import { createTicketProvider } from './providers/registry.ts';
 import { readState, writeTicketState } from './state.ts';
 
 const PORT = config.server.port;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = join(__dirname, '..', 'dist');
 const isProd = process.env.NODE_ENV === 'production';
+
+const ticketProvider = createTicketProvider(config.tickets);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -46,14 +48,14 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
   if (req.url === '/api/config') {
     return json(res, 200, {
       ui: config.ui,
-      jiraBase: config.jira.base,
+      jiraBase: config.tickets.jira?.base ?? '',
       parity: config.parity,
     });
   }
   if (req.url === '/api/burndown') {
     try {
-      const epics = await Promise.all(config.jira.epics.map(fetchEpic));
-      return json(res, 200, { epics });
+      const workstreams = await ticketProvider.fetchWorkstreams();
+      return json(res, 200, { workstreams });
     } catch (e) {
       console.error(e);
       return json(res, 500, { error: (e as Error).message });

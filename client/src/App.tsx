@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ClientConfig, Epic, StateMap, TicketState } from '../../shared/types.ts';
+import type { ClientConfig, StateMap, TicketState, Workstream } from '../../shared/types.ts';
 import CombinedChart from './components/CombinedChart.tsx';
 import EpicStatsRow from './components/EpicStatsRow.tsx';
 import TicketPanel from './components/TicketPanel.tsx';
@@ -8,7 +8,7 @@ import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
 import { fmt1 } from './lib/format.ts';
 
 interface BurndownResponse {
-  epics: Epic[];
+  workstreams: Workstream[];
 }
 
 export default function App() {
@@ -17,7 +17,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeEpic, setActiveEpic] = useState<string | null>(null);
+  const [activeWorkstream, setActiveWorkstream] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [state, setState] = useState<StateMap>({});
 
@@ -31,13 +31,13 @@ export default function App() {
         throw new Error(`HTTP ${r.status}: ${t.slice(0, 400)}`);
       }
       const parsed = (await r.json()) as BurndownResponse;
-      if (!parsed.epics) throw new Error("Response missing 'epics'");
+      if (!parsed.workstreams) throw new Error("Response missing 'workstreams'");
       let cursor = new Date();
       cursor.setHours(0, 0, 0, 0);
-      for (const epic of parsed.epics) {
-        const days = Math.ceil((remainingHours(epic) / HOURS_PER_WEEK) * 7);
+      for (const ws of parsed.workstreams) {
+        const days = Math.ceil((remainingHours(ws) / HOURS_PER_WEEK) * 7);
         cursor = new Date(cursor.getTime() + days * 86400000);
-        epic.projectedEnd = cursor.toISOString().slice(0, 10);
+        ws.projectedEnd = cursor.toISOString().slice(0, 10);
       }
       setData(parsed);
       setLastUpdated(new Date());
@@ -80,11 +80,13 @@ export default function App() {
     fetchState();
   }, []);
 
-  const pairs = data ? data.epics.map((epic) => ({ epic, bd: computeBurndown(epic) })) : [];
+  const pairs = data
+    ? data.workstreams.map((ws) => ({ workstream: ws, bd: computeBurndown(ws) }))
+    : [];
 
   useEffect(() => {
-    if (data && data.epics.length > 0 && !activeTab) {
-      setActiveTab(data.epics[0].key);
+    if (data && data.workstreams.length > 0 && !activeTab) {
+      setActiveTab(data.workstreams[0].key);
     }
   }, [data, activeTab]);
 
@@ -94,14 +96,14 @@ export default function App() {
   const totalIssues = pairs.reduce((s, { bd }) => s + bd.issueCount, 0);
 
   const handleRowClick = (key: string): void => {
-    const next = activeEpic === key ? null : key;
-    setActiveEpic(next);
+    const next = activeWorkstream === key ? null : key;
+    setActiveWorkstream(next);
     if (next) setActiveTab(next);
   };
 
   const handleTabChange = (key: string): void => {
     setActiveTab(key);
-    setActiveEpic(key);
+    setActiveWorkstream(key);
   };
 
   return (
@@ -133,7 +135,7 @@ export default function App() {
                   className="mt-3 text-neutral-500"
                   style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '13px' }}
                 >
-                  {`${pairs.length} epics · `}
+                  {`${pairs.length} workstreams · `}
                   <span className="text-amber-400">{fmt1(totalRemaining)}</span>
                   <span className="text-neutral-600">{`/${Math.round(totalPoints)}h remaining · `}</span>
                   <span className="text-neutral-300">{totalDone}</span>
@@ -142,10 +144,10 @@ export default function App() {
               )}
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              {activeEpic && (
+              {activeWorkstream && (
                 <button
                   type="button"
-                  onClick={() => setActiveEpic(null)}
+                  onClick={() => setActiveWorkstream(null)}
                   style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   className="text-[11px] uppercase tracking-[0.2em] text-neutral-600 hover:text-neutral-300 transition-colors px-3 py-2 border border-neutral-800 hover:border-neutral-600"
                 >
@@ -185,7 +187,7 @@ export default function App() {
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}
                 className="text-[11px] uppercase tracking-[0.25em]"
               >
-                fetching from jira…
+                fetching…
               </p>
             </div>
           )}
@@ -196,13 +198,13 @@ export default function App() {
                 style={{ fontFamily: '"Newsreader", serif', fontStyle: 'italic' }}
                 className="text-2xl text-neutral-500"
               >
-                No epics configured.
+                No workstreams configured.
               </p>
               <p
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}
                 className="text-xs text-neutral-700 mt-3 tracking-wider"
               >
-                edit [jira].epics in config.toml
+                edit [tickets] in config.toml
               </p>
             </div>
           )}
@@ -218,14 +220,14 @@ export default function App() {
                     hours remaining
                   </span>
                   <div className="flex items-center gap-3">
-                    {pairs.map(({ epic }, i) => (
+                    {pairs.map(({ workstream: ws }, i) => (
                       <button
                         type="button"
-                        key={epic.key}
-                        onClick={() => handleRowClick(epic.key)}
+                        key={ws.key}
+                        onClick={() => handleRowClick(ws.key)}
                         className="flex items-center gap-1.5 transition-opacity"
                         style={{
-                          opacity: activeEpic && activeEpic !== epic.key ? 0.3 : 1,
+                          opacity: activeWorkstream && activeWorkstream !== ws.key ? 0.3 : 1,
                         }}
                       >
                         <span
@@ -239,25 +241,25 @@ export default function App() {
                             color: '#71717a',
                           }}
                         >
-                          {epic.key}
+                          {ws.key}
                         </span>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="h-72 px-3 pt-1 pb-1">
-                  <CombinedChart pairs={pairs} activeEpic={activeEpic} />
+                  <CombinedChart pairs={pairs} activeWorkstream={activeWorkstream} />
                 </div>
                 <div className="border-t border-neutral-900">
-                  {pairs.map(({ epic, bd }, i) => (
+                  {pairs.map(({ workstream: ws, bd }, i) => (
                     <EpicStatsRow
-                      key={epic.key}
-                      epic={epic}
+                      key={ws.key}
+                      workstream={ws}
                       bd={bd}
                       color={EPIC_COLORS[i % EPIC_COLORS.length]}
-                      isActive={activeEpic === epic.key}
-                      isAnyActive={activeEpic !== null}
-                      onClick={() => handleRowClick(epic.key)}
+                      isActive={activeWorkstream === ws.key}
+                      isAnyActive={activeWorkstream !== null}
+                      onClick={() => handleRowClick(ws.key)}
                     />
                   ))}
                 </div>

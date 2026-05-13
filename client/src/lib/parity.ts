@@ -1,4 +1,4 @@
-import type { Epic, Issue, ParityConfig } from '../../../shared/types.ts';
+import type { Issue, ParityConfig, Workstream } from '../../../shared/types.ts';
 
 export interface ParityMatrix {
   services: string[];
@@ -6,10 +6,10 @@ export interface ParityMatrix {
   cells: Record<string, Record<string, Issue>>;
 }
 
-export const buildParityMatrix = (epic: Epic, parity: ParityConfig): ParityMatrix => {
+export const buildParityMatrix = (workstream: Workstream, parity: ParityConfig): ParityMatrix => {
   const { svcMap, svcLabelMap, modMap } = parity;
   const cells: Record<string, Record<string, Issue>> = {};
-  for (const issue of epic.issues || []) {
+  for (const issue of workstream.issues || []) {
     const compName = (issue.components || []).find((c) => svcMap[c] !== undefined);
     const svc =
       compName !== undefined
