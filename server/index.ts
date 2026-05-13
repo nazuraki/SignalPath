@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { config } from './config.ts';
 import { fetchEpic } from './jira.ts';
+import { readState, writeTicketState } from './state.ts';
 
 const PORT = config.server.port;
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,20 @@ const json = (res: ServerResponse, status: number, payload: unknown): void => {
   res.end(JSON.stringify(payload));
 };
 
+const readBody = (req: IncomingMessage): Promise<unknown> =>
+  new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
+      } catch {
+        reject(new Error('invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
+
 const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   if (req.url === '/api/config') {
     return json(res, 200, {
@@ -42,6 +57,20 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
     } catch (e) {
       console.error(e);
       return json(res, 500, { error: (e as Error).message });
+    }
+  }
+  if (req.method === 'GET' && req.url === '/api/state') {
+    return json(res, 200, readState());
+  }
+  const putMatch = req.method === 'PUT' && req.url?.match(/^\/api\/state\/([^/]+)$/);
+  if (putMatch) {
+    const key = decodeURIComponent(putMatch[1]);
+    try {
+      const body = await readBody(req);
+      const updated = writeTicketState(key, body as Record<string, string>);
+      return json(res, 200, updated);
+    } catch (e) {
+      return json(res, 400, { error: (e as Error).message });
     }
   }
   return json(res, 404, { error: 'not found' });

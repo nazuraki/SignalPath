@@ -76,3 +76,14 @@ export interface EpicPair {
   epic: Epic;
   bd: BurndownResult;
 }
+
+export interface TicketState {
+  pr?: string;
+  deployAppId?: string;
+  metricsUrl?: string;
+  /** ISO 8601 datetime string, e.g. "2024-01-15T10:30:00.000Z" */
+  deployedAt?: string;
+  notes?: string;
+}
+
+export type StateMap = Record<string, TicketState>;
