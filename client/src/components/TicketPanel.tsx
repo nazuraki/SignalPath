@@ -1,7 +1,9 @@
-import type { EpicPair } from '../../../shared/types.ts';
+import { useState } from 'react';
+import type { EpicPair, StateMap, TicketState } from '../../../shared/types.ts';
 import { EPIC_COLORS } from '../lib/burndown.ts';
 import { useConfig, useJiraUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
+import { AnnotationForm, AnnotationToggle } from './AnnotationPanel.tsx';
 import ParityMatrix from './ParityMatrix.tsx';
 import StatusPill from './StatusPill.tsx';
 
@@ -9,11 +11,20 @@ interface Props {
   pairs: EpicPair[];
   activeTab: string | null;
   onTabChange: (key: string) => void;
+  state: StateMap;
+  onStateChange: (key: string, patch: Partial<TicketState>) => void;
 }
 
-export default function TicketPanel({ pairs, activeTab, onTabChange }: Props) {
+export default function TicketPanel({
+  pairs,
+  activeTab,
+  onTabChange,
+  state,
+  onStateChange,
+}: Props) {
   const { parity } = useConfig();
   const jiraUrl = useJiraUrl();
+  const [openAnnotation, setOpenAnnotation] = useState<string | null>(null);
   const pair = pairs.find((p) => p.epic.key === activeTab) || pairs[0];
   if (!pair) return null;
   const { epic } = pair;
@@ -74,41 +85,58 @@ export default function TicketPanel({ pairs, activeTab, onTabChange }: Props) {
         ) : (
           issues.map((issue) => {
             const done = !!issue.resolutiondate;
+            const annotationOpen = openAnnotation === issue.key;
             return (
-              <div
-                key={issue.key}
-                className={`px-6 py-2.5 flex items-center gap-4 transition-colors ${done ? 'opacity-35' : 'hover:bg-neutral-900/20'}`}
-              >
-                <a
-                  href={jiraUrl(issue.key)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                  className="text-xs text-amber-400/60 hover:text-amber-400 shrink-0 w-[5.5rem] transition-colors"
+              <div key={issue.key} className={done ? 'opacity-35' : ''}>
+                <div
+                  className={`px-6 py-2.5 flex items-center gap-4 transition-colors ${done ? '' : 'hover:bg-neutral-900/20'}`}
                 >
-                  {issue.key}
-                </a>
-                <StatusPill status={issue.status} />
-                <span
-                  style={{ fontFamily: '"Newsreader", serif' }}
-                  className={`flex-1 text-sm truncate min-w-0 ${
-                    done ? 'line-through text-neutral-600' : 'text-neutral-300'
-                  }`}
-                >
-                  {issue.summary}
-                </span>
-                <span
-                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                  className="text-xs text-neutral-600 shrink-0 w-10 text-right tabular-nums"
-                >
-                  {issue.points !== null ? `${fmt1(issue.points)}h` : '—'}
-                </span>
-                <span
-                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                  className="text-xs text-neutral-700 shrink-0 w-16 text-right"
-                >
-                  {issue.resolutiondate ? fmtDate(issue.resolutiondate) : '—'}
-                </span>
+                  <a
+                    href={jiraUrl(issue.key)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                    className="text-xs text-amber-400/60 hover:text-amber-400 shrink-0 w-[5.5rem] transition-colors"
+                  >
+                    {issue.key}
+                  </a>
+                  <StatusPill status={issue.status} />
+                  <span
+                    style={{ fontFamily: '"Newsreader", serif' }}
+                    className={`flex-1 text-sm truncate min-w-0 ${
+                      done ? 'line-through text-neutral-600' : 'text-neutral-300'
+                    }`}
+                  >
+                    {issue.summary}
+                  </span>
+                  <span
+                    style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                    className="text-xs text-neutral-600 shrink-0 w-10 text-right tabular-nums"
+                  >
+                    {issue.points !== null ? `${fmt1(issue.points)}h` : '—'}
+                  </span>
+                  <span
+                    style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                    className="text-xs text-neutral-700 shrink-0 w-16 text-right"
+                  >
+                    {issue.resolutiondate ? fmtDate(issue.resolutiondate) : '—'}
+                  </span>
+                  <AnnotationToggle
+                    annotation={state[issue.key]}
+                    open={annotationOpen}
+                    onToggle={() => setOpenAnnotation(annotationOpen ? null : issue.key)}
+                  />
+                </div>
+                {annotationOpen && (
+                  <AnnotationForm
+                    annotation={state[issue.key]}
+                    onSave={(patch) => {
+                      onStateChange(issue.key, patch);
+                      setOpenAnnotation(null);
+                    }}
+                    onCancel={() => setOpenAnnotation(null)}
+                  />
+                )}
               </div>
             );
           })

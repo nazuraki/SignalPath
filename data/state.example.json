@@ -1,0 +1,9 @@
+{
+  "PROJ-123": {
+    "pr": "https://github.com/org/repo/pull/42",
+    "deployAppId": "my-app-prod",
+    "metricsUrl": "https://grafana.example.com/d/abc123",
+    "deployedAt": "2024-01-15T10:30:00.000Z",
+    "notes": "Rolled back once due to DB migration timeout; re-deployed successfully."
+  }
+}

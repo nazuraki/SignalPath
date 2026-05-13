@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ClientConfig, Epic } from '../../shared/types.ts';
+import type { ClientConfig, Epic, StateMap, TicketState } from '../../shared/types.ts';
 import CombinedChart from './components/CombinedChart.tsx';
 import EpicStatsRow from './components/EpicStatsRow.tsx';
 import TicketPanel from './components/TicketPanel.tsx';
@@ -19,6 +19,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeEpic, setActiveEpic] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [state, setState] = useState<StateMap>({});
 
   const fetchData = async (): Promise<void> => {
     setLoading(true);
@@ -48,12 +49,35 @@ export default function App() {
     }
   };
 
+  const fetchState = async (): Promise<void> => {
+    try {
+      const r = await fetch('/api/state');
+      if (r.ok) setState((await r.json()) as StateMap);
+    } catch (e) {
+      console.error('state load failed', e);
+    }
+  };
+
+  const handleStateChange = async (key: string, patch: Partial<TicketState>): Promise<void> => {
+    try {
+      const r = await fetch(`/api/state/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (r.ok) setState((await r.json()) as StateMap);
+    } catch (e) {
+      console.error('state update failed', e);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/config')
       .then((r) => r.json() as Promise<ClientConfig>)
       .then(setConfig)
       .catch((e) => console.error('config load failed', e));
     fetchData();
+    fetchState();
   }, []);
 
   const pairs = data ? data.epics.map((epic) => ({ epic, bd: computeBurndown(epic) })) : [];
@@ -240,7 +264,13 @@ export default function App() {
               </div>
 
               {activeTab && (
-                <TicketPanel pairs={pairs} activeTab={activeTab} onTabChange={handleTabChange} />
+                <TicketPanel
+                  pairs={pairs}
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                  state={state}
+                  onStateChange={handleStateChange}
+                />
               )}
             </div>
           )}
