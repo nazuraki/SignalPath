@@ -22,7 +22,9 @@ interface ChipProps {
 function ActiveChip({ issue, jiraUrl }: ChipProps) {
   const inReview = stageOf(issue) === 'review';
   const accent = inReview ? 'var(--c-review)' : 'var(--c-accent)';
-  const borderAccent = inReview ? 'color-mix(in srgb, var(--c-review) 33%, transparent)' : 'color-mix(in srgb, var(--c-accent) 33%, transparent)';
+  const borderAccent = inReview
+    ? 'color-mix(in srgb, var(--c-review) 33%, transparent)'
+    : 'color-mix(in srgb, var(--c-accent) 33%, transparent)';
   return (
     <a
       href={jiraUrl(issue.key)}
@@ -145,7 +147,10 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
         <div className="progress-track w-full" style={{ height: 4 }}>
           <div
             className="h-full transition-all"
-            style={{ width: `${bd.pctComplete}%`, backgroundColor: isActive ? color : 'var(--c-accent)' }}
+            style={{
+              width: `${bd.pctComplete}%`,
+              backgroundColor: isActive ? color : 'var(--c-accent)',
+            }}
           />
         </div>
         <div
@@ -170,7 +175,10 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           {backlogDots > 0 && (
             <div className="flex items-center z-10" style={{ gap: 8 }}>
               {Array.from({ length: backlogDots }).map((_, i) => (
-                <span key={i} style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }} />
+                <span
+                  key={i}
+                  style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }}
+                />
               ))}
               {backlogOverflow > 0 && (
                 <span
@@ -200,7 +208,12 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           {buckets.done.length > recentDone.length && (
             <span
               className="text-neutral-600 z-10"
-              style={{ fontFamily: MONO, fontSize: 13, padding: '0 6px', backgroundColor: 'var(--c-bg)' }}
+              style={{
+                fontFamily: MONO,
+                fontSize: 13,
+                padding: '0 6px',
+                backgroundColor: 'var(--c-bg)',
+              }}
             >
               {`+${buckets.done.length - recentDone.length} done`}
             </span>

@@ -63,19 +63,45 @@ body {
 }
 
 /* Light mode overrides for Tailwind's hardcoded neutral palette */
-[data-theme="light"] .text-neutral-200 { color: var(--c-text); }
-[data-theme="light"] .text-neutral-300 { color: #2a2a38; }
-[data-theme="light"] .text-neutral-600 { color: var(--c-text-subtle); }
-[data-theme="light"] .text-neutral-700 { color: var(--c-text-faint); }
-[data-theme="light"] .text-neutral-800 { color: #aaaabc; }
-[data-theme="light"] .border-neutral-900 { border-color: var(--c-border); }
-[data-theme="light"] .border-neutral-900\/50 { border-color: rgba(192, 194, 204, 0.5); }
-[data-theme="light"] .bg-neutral-950\/30 { background-color: rgba(200, 200, 212, 0.3); }
-[data-theme="light"] .hover\:bg-neutral-900\/20:hover { background-color: rgba(180, 180, 196, 0.2); }
-[data-theme="light"] .text-amber-400 { color: #9a4800; }
-[data-theme="light"] .text-emerald-400 { color: var(--c-done); }
-[data-theme="light"] .bg-emerald-950\/50 { background-color: var(--c-done-bg); }
-[data-theme="light"] .border-emerald-900\/50 { border-color: var(--c-done-border); }
+[data-theme="light"] .text-neutral-200 {
+  color: var(--c-text);
+}
+[data-theme="light"] .text-neutral-300 {
+  color: #2a2a38;
+}
+[data-theme="light"] .text-neutral-600 {
+  color: var(--c-text-subtle);
+}
+[data-theme="light"] .text-neutral-700 {
+  color: var(--c-text-faint);
+}
+[data-theme="light"] .text-neutral-800 {
+  color: #aaaabc;
+}
+[data-theme="light"] .border-neutral-900 {
+  border-color: var(--c-border);
+}
+[data-theme="light"] .border-neutral-900\/50 {
+  border-color: rgba(192, 194, 204, 0.5);
+}
+[data-theme="light"] .bg-neutral-950\/30 {
+  background-color: rgba(200, 200, 212, 0.3);
+}
+[data-theme="light"] .hover\:bg-neutral-900\/20:hover {
+  background-color: rgba(180, 180, 196, 0.2);
+}
+[data-theme="light"] .text-amber-400 {
+  color: #9a4800;
+}
+[data-theme="light"] .text-emerald-400 {
+  color: var(--c-done);
+}
+[data-theme="light"] .bg-emerald-950\/50 {
+  background-color: var(--c-done-bg);
+}
+[data-theme="light"] .border-emerald-900\/50 {
+  border-color: var(--c-done-border);
+}
 
 /* Semantic component classes for themeable hover states */
 .task-chip {
