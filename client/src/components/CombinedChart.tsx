@@ -10,6 +10,7 @@ import {
 import type { WorkstreamPair } from '../../../shared/types.ts';
 import { buildCombinedSeries, EPIC_COLORS } from '../lib/burndown.ts';
 import { fmt1 } from '../lib/format.ts';
+import { useIsDark } from '../lib/theme.ts';
 
 interface Props {
   pairs: WorkstreamPair[];
@@ -17,33 +18,41 @@ interface Props {
 }
 
 export default function CombinedChart({ pairs, activeWorkstream }: Props) {
+  const dark = useIsDark();
   const series = buildCombinedSeries(pairs);
+
+  const gridColor = dark ? '#1f1f23' : '#e0e0e8';
+  const axisColor = dark ? '#52525b' : '#8888a0';
+  const tooltipBg = dark ? '#0c0c0d' : '#ffffff';
+  const tooltipBorder = dark ? '#2a2a2e' : '#c8c8d4';
+  const tooltipLabel = dark ? '#a3a3a3' : '#606070';
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={series} margin={{ top: 10, right: 28, left: 8, bottom: 8 }}>
-        <CartesianGrid stroke="#1f1f23" strokeDasharray="2 4" vertical={false} />
+        <CartesianGrid stroke={gridColor} strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="label"
-          stroke="#52525b"
+          stroke={axisColor}
           fontSize={10}
           tick={{ fontFamily: 'JetBrains Mono, monospace' }}
           interval="preserveStartEnd"
           minTickGap={60}
         />
         <YAxis
-          stroke="#52525b"
+          stroke={axisColor}
           fontSize={10}
           tick={{ fontFamily: 'JetBrains Mono, monospace' }}
           allowDecimals={false}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#0c0c0d',
-            border: '1px solid #2a2a2e',
+            backgroundColor: tooltipBg,
+            border: `1px solid ${tooltipBorder}`,
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '11px',
           }}
-          labelStyle={{ color: '#a3a3a3' }}
+          labelStyle={{ color: tooltipLabel }}
           formatter={(v, name) => {
             const n = typeof v === 'number' ? v : null;
             return [n !== null ? `${fmt1(n)}h` : '—', String(name)];
@@ -62,7 +71,7 @@ export default function CombinedChart({ pairs, activeWorkstream }: Props) {
               strokeOpacity={highlighted ? 1 : 0.12}
               dot={false}
               connectNulls={true}
-              name={workstream.key}
+              name={workstream.key.split('/').pop() || workstream.key}
               isAnimationActive={false}
             />
           );

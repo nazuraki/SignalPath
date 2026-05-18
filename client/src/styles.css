@@ -1,12 +1,132 @@
+:root,
+[data-theme="dark"] {
+  --c-bg: #131316;
+  --c-bg-card: #1b1b1e;
+  --c-bg-chip: #1f1f22;
+  --c-bg-hover: #2a2a2d;
+  --c-border: #424754;
+  --c-text: #e4e1e5;
+  --c-text-subtle: #919191;
+  --c-text-faint: #52525b;
+  --c-accent: #adc6ff;
+  --c-error: #ffb4ab;
+  --c-error-bg: rgba(255, 180, 171, 0.08);
+  --c-error-border: rgba(255, 180, 171, 0.2);
+  --c-done: #00e38b;
+  --c-done-text: #7fe3b6;
+  --c-done-bg: rgba(0, 227, 139, 0.05);
+  --c-done-border: rgba(0, 227, 139, 0.2);
+  --c-review: #ffb786;
+  --c-grid: #1f1f23;
+  --c-axis: #52525b;
+  --c-tooltip-bg: #0c0c0d;
+  --c-tooltip-border: #2a2a2e;
+  --c-bg-card-60: rgba(27, 27, 30, 0.6);
+  --c-backlog: rgba(66, 71, 84, 0.6);
+}
+
+[data-theme="light"] {
+  --c-bg: #f5f5f7;
+  --c-bg-card: #e4e4ea;
+  --c-bg-chip: #d8d8e2;
+  --c-bg-hover: #ccccda;
+  --c-border: #c0c2cc;
+  --c-text: #18181c;
+  --c-text-subtle: #60607a;
+  --c-text-faint: #8888a0;
+  --c-accent: #2450d0;
+  --c-error: #c0261c;
+  --c-error-bg: rgba(192, 38, 28, 0.08);
+  --c-error-border: rgba(192, 38, 28, 0.2);
+  --c-done: #007a48;
+  --c-done-text: #065438;
+  --c-done-bg: rgba(0, 122, 72, 0.08);
+  --c-done-border: rgba(0, 122, 72, 0.25);
+  --c-review: #b85000;
+  --c-grid: #e0e0e8;
+  --c-axis: #8888a0;
+  --c-tooltip-bg: #ffffff;
+  --c-tooltip-border: #c8c8d4;
+  --c-bg-card-60: rgba(228, 228, 234, 0.8);
+  --c-backlog: rgba(160, 160, 180, 0.5);
+}
+
 body {
-  background: #131316;
+  background: var(--c-bg);
   margin: 0;
-  color: #e4e1e5;
+  color: var(--c-text);
   font-family: "Inter", system-ui, sans-serif;
 }
 
 .text-neutral-500 {
-  color: #919191;
+  color: var(--c-text-subtle);
+}
+
+/* Light mode overrides for Tailwind's hardcoded neutral palette */
+[data-theme="light"] .text-neutral-200 {
+  color: var(--c-text);
+}
+[data-theme="light"] .text-neutral-300 {
+  color: #2a2a38;
+}
+[data-theme="light"] .text-neutral-600 {
+  color: var(--c-text-subtle);
+}
+[data-theme="light"] .text-neutral-700 {
+  color: var(--c-text-faint);
+}
+[data-theme="light"] .text-neutral-800 {
+  color: #aaaabc;
+}
+[data-theme="light"] .border-neutral-900 {
+  border-color: var(--c-border);
+}
+[data-theme="light"] .border-neutral-900\/50 {
+  border-color: rgba(192, 194, 204, 0.5);
+}
+[data-theme="light"] .bg-neutral-950\/30 {
+  background-color: rgba(200, 200, 212, 0.3);
+}
+[data-theme="light"] .hover\:bg-neutral-900\/20:hover {
+  background-color: rgba(180, 180, 196, 0.2);
+}
+[data-theme="light"] .text-amber-400 {
+  color: #9a4800;
+}
+[data-theme="light"] .text-emerald-400 {
+  color: var(--c-done);
+}
+[data-theme="light"] .bg-emerald-950\/50 {
+  background-color: var(--c-done-bg);
+}
+[data-theme="light"] .border-emerald-900\/50 {
+  border-color: var(--c-done-border);
+}
+
+/* Semantic component classes for themeable hover states */
+.task-chip {
+  background-color: var(--c-bg-chip);
+}
+.task-chip:hover {
+  background-color: var(--c-bg-hover);
+}
+
+.pipeline-row {
+  background-color: var(--c-bg-card-60);
+}
+.pipeline-row:hover {
+  background-color: var(--c-bg-chip);
+}
+
+.progress-track {
+  background-color: var(--c-bg-hover);
+}
+
+.icon-btn {
+  transition: color 0.15s;
+}
+.icon-btn:hover {
+  color: var(--c-accent) !important;
 }
 
 .truncate-fade {

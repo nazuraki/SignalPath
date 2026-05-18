@@ -13,6 +13,50 @@ interface BurndownResponse {
 
 const MONO = '"JetBrains Mono", monospace';
 
+function SunIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [config, setConfig] = useState<ClientConfig>(DEFAULT_CONFIG);
   const [data, setData] = useState<BurndownResponse | null>(null);
@@ -20,6 +64,14 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeWorkstream, setActiveWorkstream] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState<boolean>(
+    () => localStorage.getItem('theme') !== 'light',
+  );
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   const fetchData = async (): Promise<void> => {
     setLoading(true);
@@ -77,13 +129,16 @@ export default function App() {
 
   return (
     <ConfigContext.Provider value={config}>
-      <div className="min-h-screen" style={{ backgroundColor: '#131316', color: '#e4e1e5' }}>
+      <div
+        className="min-h-screen"
+        style={{ backgroundColor: 'var(--c-bg)', color: 'var(--c-text)' }}
+      >
         {/* Top app bar */}
         <header
           className="sticky top-0 z-40 flex items-center justify-between border-b"
           style={{
-            backgroundColor: '#131316',
-            borderColor: '#424754',
+            backgroundColor: 'var(--c-bg)',
+            borderColor: 'var(--c-border)',
             height: 70,
             paddingLeft: 32,
             paddingRight: 32,
@@ -93,7 +148,7 @@ export default function App() {
             <h2
               className="font-semibold truncate"
               style={{
-                color: '#adc6ff',
+                color: 'var(--c-accent)',
                 fontFamily: 'Inter, system-ui, sans-serif',
                 fontSize: 20,
               }}
@@ -112,24 +167,24 @@ export default function App() {
               <span
                 className="flex items-center gap-2 border"
                 style={{
-                  backgroundColor: '#ffb4ab14',
-                  borderColor: '#ffb4ab33',
+                  backgroundColor: 'var(--c-error-bg)',
+                  borderColor: 'var(--c-error-border)',
                   fontFamily: MONO,
                   padding: '4px 10px',
                 }}
               >
                 <span
                   className="rounded-full animate-pulse"
-                  style={{ backgroundColor: '#ffb4ab', width: 8, height: 8 }}
+                  style={{ backgroundColor: 'var(--c-error)', width: 8, height: 8 }}
                 />
                 <span
                   className="font-bold uppercase"
-                  style={{ color: '#ffb4ab', fontSize: 13 }}
+                  style={{ color: 'var(--c-error)', fontSize: 13 }}
                 >{`${stalledCount} active`}</span>
               </span>
             )}
           </div>
-          <div className="flex items-center gap-5" style={{ fontFamily: MONO }}>
+          <div className="flex items-center gap-3" style={{ fontFamily: MONO }}>
             {data && pairs.length > 0 && (
               <span
                 className="hidden md:inline text-neutral-500 tabular-nums"
@@ -143,10 +198,19 @@ export default function App() {
             )}
             <button
               type="button"
+              onClick={() => setDarkMode(!darkMode)}
+              className="icon-btn text-neutral-500 border flex items-center justify-center"
+              style={{ borderColor: 'var(--c-border)', padding: '8px 10px' }}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {darkMode ? <SunIcon /> : <MoonIcon />}
+            </button>
+            <button
+              type="button"
               onClick={fetchData}
               disabled={loading}
-              className="uppercase tracking-[0.25em] text-neutral-500 hover:text-[#adc6ff] disabled:opacity-30 transition-colors border"
-              style={{ borderColor: '#424754', fontSize: 13, padding: '8px 16px' }}
+              className="icon-btn uppercase tracking-[0.25em] text-neutral-500 disabled:opacity-30 border"
+              style={{ borderColor: 'var(--c-border)', fontSize: 13, padding: '8px 16px' }}
             >
               {loading ? 'fetching…' : '↻ refresh'}
             </button>
@@ -161,9 +225,9 @@ export default function App() {
             <div
               className="border"
               style={{
-                borderColor: '#ffb4ab55',
-                backgroundColor: '#ffb4ab0a',
-                color: '#ffb4ab',
+                borderColor: 'var(--c-error-border)',
+                backgroundColor: 'var(--c-error-bg)',
+                color: 'var(--c-error)',
                 fontFamily: MONO,
                 padding: 20,
               }}
@@ -188,8 +252,8 @@ export default function App() {
               <div
                 className="border rounded-full animate-spin"
                 style={{
-                  borderColor: '#424754',
-                  borderTopColor: '#adc6ff',
+                  borderColor: 'var(--c-border)',
+                  borderTopColor: 'var(--c-accent)',
                   width: 40,
                   height: 40,
                   marginBottom: 20,
@@ -224,7 +288,7 @@ export default function App() {
                   style={{ paddingLeft: 6, marginBottom: 16 }}
                 >
                   <div className="flex items-center gap-4">
-                    <span style={{ width: 8, height: 8, backgroundColor: '#adc6ff' }} />
+                    <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-accent)' }} />
                     <span
                       className="uppercase tracking-[0.25em] text-neutral-500"
                       style={{ fontFamily: MONO, fontSize: 14 }}
@@ -251,7 +315,7 @@ export default function App() {
                           }}
                         />
                         <span className="text-neutral-500" style={{ fontSize: 13 }}>
-                          {ws.key}
+                          {ws.key.split('/').pop() || ws.key}
                         </span>
                       </button>
                     ))}
@@ -260,8 +324,8 @@ export default function App() {
                 <div
                   className="border"
                   style={{
-                    borderColor: '#424754',
-                    backgroundColor: '#1b1b1e66',
+                    borderColor: 'var(--c-border)',
+                    backgroundColor: 'var(--c-bg-card-60)',
                     height: 360,
                     padding: 10,
                   }}
@@ -285,7 +349,7 @@ export default function App() {
                     className="flex items-center gap-4"
                     style={{ paddingLeft: 6, marginBottom: 16 }}
                   >
-                    <span style={{ width: 8, height: 8, backgroundColor: '#adc6ff' }} />
+                    <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-accent)' }} />
                     <span
                       className="uppercase tracking-[0.25em] text-neutral-500"
                       style={{ fontFamily: MONO, fontSize: 14 }}
@@ -295,7 +359,10 @@ export default function App() {
                   </div>
                   <div
                     className="border"
-                    style={{ borderColor: '#424754', backgroundColor: '#1b1b1e66' }}
+                    style={{
+                      borderColor: 'var(--c-border)',
+                      backgroundColor: 'var(--c-bg-card-60)',
+                    }}
                   >
                     <ParityMatrix workstream={parityWorkstream} />
                   </div>

@@ -21,16 +21,19 @@ interface ChipProps {
 
 function ActiveChip({ issue, jiraUrl }: ChipProps) {
   const inReview = stageOf(issue) === 'review';
-  const accent = inReview ? '#ffb786' : '#adc6ff';
+  const accent = inReview ? 'var(--c-review)' : 'var(--c-accent)';
+  const borderAccent = inReview
+    ? 'color-mix(in srgb, var(--c-review) 33%, transparent)'
+    : 'color-mix(in srgb, var(--c-accent) 33%, transparent)';
   return (
     <a
       href={jiraUrl(issue.key)}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="task-chip flex flex-col justify-center z-10 border bg-[#1f1f22] hover:bg-[#2a2a2d] transition-colors"
+      className="task-chip flex flex-col justify-center z-10 border transition-colors"
       style={{
-        borderColor: inReview ? '#ffb78655' : '#adc6ff55',
+        borderColor: borderAccent,
         borderLeftWidth: 3,
         borderLeftColor: accent,
         fontFamily: MONO,
@@ -67,16 +70,16 @@ function DoneChip({ issue, jiraUrl }: ChipProps) {
       onClick={(e) => e.stopPropagation()}
       className="flex items-center z-10 border opacity-70 hover:opacity-100 transition-opacity"
       style={{
-        borderColor: '#00e38b33',
-        backgroundColor: '#00e38b0d',
+        borderColor: 'var(--c-done-border)',
+        backgroundColor: 'var(--c-done-bg)',
         fontFamily: MONO,
         height: 36,
         padding: '0 12px',
         gap: 8,
       }}
     >
-      <span style={{ width: 8, height: 8, backgroundColor: '#00e38b' }} />
-      <span style={{ color: '#7fe3b6', fontSize: 14 }}>{issue.key}</span>
+      <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-done)' }} />
+      <span style={{ color: 'var(--c-done-text)', fontSize: 14 }}>{issue.key}</span>
     </a>
   );
 }
@@ -115,19 +118,19 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
       }}
       role="button"
       tabIndex={0}
-      className="flex items-stretch border border-[#424754] bg-[#1b1b1e]/60 hover:bg-[#1f1f22] cursor-pointer select-none transition-all"
-      style={{ minHeight: 110, opacity: dimmed ? 0.35 : 1 }}
+      className="pipeline-row flex items-stretch border cursor-pointer select-none transition-all"
+      style={{ borderColor: 'var(--c-border)', minHeight: 110, opacity: dimmed ? 0.35 : 1 }}
     >
       {/* Left: epic name + progress */}
       <div
-        className="border-r border-[#424754] flex flex-col justify-center shrink-0"
-        style={{ width: 400, padding: '20px 24px' }}
+        className="flex flex-col justify-center shrink-0"
+        style={{ borderRight: '1px solid var(--c-border)', width: 400, padding: '20px 24px' }}
       >
         <div className="flex items-baseline justify-between" style={{ gap: 10, marginBottom: 10 }}>
           <span
             className="font-bold truncate"
             style={{
-              color: isActive ? color : '#adc6ff',
+              color: isActive ? color : 'var(--c-accent)',
               fontFamily: MONO,
               fontSize: 16,
             }}
@@ -141,10 +144,13 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
             {`${bd.pctComplete}%`}
           </span>
         </div>
-        <div className="w-full bg-[#2a2a2d]" style={{ height: 4 }}>
+        <div className="progress-track w-full" style={{ height: 4 }}>
           <div
             className="h-full transition-all"
-            style={{ width: `${bd.pctComplete}%`, backgroundColor: isActive ? color : '#adc6ff' }}
+            style={{
+              width: `${bd.pctComplete}%`,
+              backgroundColor: isActive ? color : 'var(--c-accent)',
+            }}
           />
         </div>
         <div
@@ -162,14 +168,17 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
       <div className="flex-1 relative overflow-x-auto" style={{ padding: '20px 40px' }}>
         <div
           className="absolute left-0 right-0 top-1/2"
-          style={{ height: 1, backgroundColor: '#424754' }}
+          style={{ height: 1, backgroundColor: 'var(--c-border)' }}
         />
         <div className="relative flex items-center h-full" style={{ gap: 20, minHeight: 70 }}>
           {/* Backlog dots */}
           {backlogDots > 0 && (
             <div className="flex items-center z-10" style={{ gap: 8 }}>
               {Array.from({ length: backlogDots }).map((_, i) => (
-                <span key={i} style={{ width: 8, height: 8, backgroundColor: '#42475499' }} />
+                <span
+                  key={i}
+                  style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }}
+                />
               ))}
               {backlogOverflow > 0 && (
                 <span
@@ -198,8 +207,13 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           ))}
           {buckets.done.length > recentDone.length && (
             <span
-              className="text-neutral-600 z-10 bg-[#131316]"
-              style={{ fontFamily: MONO, fontSize: 13, padding: '0 6px' }}
+              className="text-neutral-600 z-10"
+              style={{
+                fontFamily: MONO,
+                fontSize: 13,
+                padding: '0 6px',
+                backgroundColor: 'var(--c-bg)',
+              }}
             >
               {`+${buckets.done.length - recentDone.length} done`}
             </span>
@@ -234,7 +248,7 @@ export default function PipelineStatus({ pairs, activeWorkstream, colors, onRowC
         style={{ paddingLeft: 6, marginBottom: 16 }}
       >
         <div className="flex items-center gap-4">
-          <span style={{ width: 8, height: 8, backgroundColor: '#adc6ff' }} />
+          <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-accent)' }} />
           <span
             className="uppercase tracking-[0.25em] text-neutral-500"
             style={{ fontFamily: MONO, fontSize: 14 }}
@@ -243,10 +257,10 @@ export default function PipelineStatus({ pairs, activeWorkstream, colors, onRowC
           </span>
         </div>
         <div className="flex items-center" style={{ fontFamily: MONO, gap: 24 }}>
-          <Legend swatch="#42475499" label="Backlog" />
-          <Legend swatch="#adc6ff" label="In Progress" />
-          <Legend swatch="#ffb786" label="Review" />
-          <Legend swatch="#00e38b" label="Done" />
+          <Legend swatch="var(--c-backlog)" label="Backlog" />
+          <Legend swatch="var(--c-accent)" label="In Progress" />
+          <Legend swatch="var(--c-review)" label="Review" />
+          <Legend swatch="var(--c-done)" label="Done" />
         </div>
       </div>
       <div className="flex flex-col" style={{ gap: 10 }}>
