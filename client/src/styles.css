@@ -1,8 +1,12 @@
 body {
-  background: #0c0c0d;
+  background: #131316;
   margin: 0;
-  color: #e8e8e8;
-  font-family: "Geist", system-ui, sans-serif;
+  color: #e4e1e5;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.text-neutral-500 {
+  color: #919191;
 }
 
 .truncate-fade {

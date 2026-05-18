@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { ClientConfig, StateMap, TicketState, Workstream } from '../../shared/types.ts';
+import type { ClientConfig, Workstream } from '../../shared/types.ts';
 import CombinedChart from './components/CombinedChart.tsx';
-import EpicStatsRow from './components/EpicStatsRow.tsx';
-import TicketPanel from './components/TicketPanel.tsx';
+import ParityMatrix from './components/ParityMatrix.tsx';
+import PipelineStatus from './components/PipelineStatus.tsx';
 import { computeBurndown, EPIC_COLORS, HOURS_PER_WEEK, remainingHours } from './lib/burndown.ts';
 import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
 import { fmt1 } from './lib/format.ts';
@@ -11,6 +11,8 @@ interface BurndownResponse {
   workstreams: Workstream[];
 }
 
+const MONO = '"JetBrains Mono", monospace';
+
 export default function App() {
   const [config, setConfig] = useState<ClientConfig>(DEFAULT_CONFIG);
   const [data, setData] = useState<BurndownResponse | null>(null);
@@ -18,8 +20,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeWorkstream, setActiveWorkstream] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [state, setState] = useState<StateMap>({});
 
   const fetchData = async (): Promise<void> => {
     setLoading(true);
@@ -49,243 +49,270 @@ export default function App() {
     }
   };
 
-  const fetchState = async (): Promise<void> => {
-    try {
-      const r = await fetch('/api/state');
-      if (r.ok) setState((await r.json()) as StateMap);
-    } catch (e) {
-      console.error('state load failed', e);
-    }
-  };
-
-  const handleStateChange = async (key: string, patch: Partial<TicketState>): Promise<void> => {
-    try {
-      const r = await fetch(`/api/state/${encodeURIComponent(key)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-      if (r.ok) setState((await r.json()) as StateMap);
-    } catch (e) {
-      console.error('state update failed', e);
-    }
-  };
-
   useEffect(() => {
     fetch('/api/config')
       .then((r) => r.json() as Promise<ClientConfig>)
       .then(setConfig)
       .catch((e) => console.error('config load failed', e));
     fetchData();
-    fetchState();
   }, []);
 
   const pairs = data
     ? data.workstreams.map((ws) => ({ workstream: ws, bd: computeBurndown(ws) }))
     : [];
 
-  useEffect(() => {
-    if (data && data.workstreams.length > 0 && !activeTab) {
-      setActiveTab(data.workstreams[0].key);
-    }
-  }, [data, activeTab]);
-
   const totalRemaining = pairs.reduce((s, { bd }) => s + bd.remaining, 0);
   const totalPoints = pairs.reduce((s, { bd }) => s + bd.totalPoints, 0);
   const totalDone = pairs.reduce((s, { bd }) => s + bd.doneCount, 0);
   const totalIssues = pairs.reduce((s, { bd }) => s + bd.issueCount, 0);
+  const stalledCount = pairs.filter(({ bd }) => bd.pctComplete > 0 && bd.pctComplete < 100).length;
 
   const handleRowClick = (key: string): void => {
-    const next = activeWorkstream === key ? null : key;
-    setActiveWorkstream(next);
-    if (next) setActiveTab(next);
+    setActiveWorkstream(activeWorkstream === key ? null : key);
   };
 
-  const handleTabChange = (key: string): void => {
-    setActiveTab(key);
-    setActiveWorkstream(key);
-  };
+  const parityWorkstream = config.parity.epic
+    ? pairs.find((p) => p.workstream.key === config.parity.epic)?.workstream
+    : undefined;
 
   return (
     <ConfigContext.Provider value={config}>
-      <div style={{ minHeight: '100vh' }}>
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <header className="mb-10 flex items-end justify-between gap-4 border-b border-neutral-800 pb-8">
-            <div>
-              {config.ui.subtitle && (
-                <p
-                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                  className="text-[11px] text-neutral-500 tracking-[0.25em] uppercase mb-3"
-                >
-                  {config.ui.subtitle}
-                </p>
-              )}
-              <h1
+      <div className="min-h-screen" style={{ backgroundColor: '#131316', color: '#e4e1e5' }}>
+        {/* Top app bar */}
+        <header
+          className="sticky top-0 z-40 flex items-center justify-between border-b"
+          style={{
+            backgroundColor: '#131316',
+            borderColor: '#424754',
+            height: 70,
+            paddingLeft: 32,
+            paddingRight: 32,
+          }}
+        >
+          <div className="flex items-center gap-8 min-w-0">
+            <h2
+              className="font-semibold truncate"
+              style={{
+                color: '#adc6ff',
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontSize: 20,
+              }}
+            >
+              {config.ui.title}
+            </h2>
+            {config.ui.subtitle && (
+              <span
+                className="hidden md:inline uppercase tracking-[0.25em] text-neutral-500"
+                style={{ fontFamily: MONO, fontSize: 13 }}
+              >
+                {config.ui.subtitle}
+              </span>
+            )}
+            {data && stalledCount > 0 && (
+              <span
+                className="flex items-center gap-2 border"
                 style={{
-                  fontFamily: '"Newsreader", serif',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em',
+                  backgroundColor: '#ffb4ab14',
+                  borderColor: '#ffb4ab33',
+                  fontFamily: MONO,
+                  padding: '4px 10px',
                 }}
-                className="text-5xl text-neutral-50"
               >
-                {config.ui.title}
-              </h1>
-              {data && pairs.length > 0 && (
-                <p
-                  className="mt-3 text-neutral-500"
-                  style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '13px' }}
-                >
-                  {`${pairs.length} workstreams · `}
-                  <span className="text-amber-400">{fmt1(totalRemaining)}</span>
-                  <span className="text-neutral-600">{`/${Math.round(totalPoints)}h remaining · `}</span>
-                  <span className="text-neutral-300">{totalDone}</span>
-                  <span className="text-neutral-600">{`/${totalIssues} issues resolved`}</span>
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {activeWorkstream && (
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkstream(null)}
-                  style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                  className="text-[11px] uppercase tracking-[0.2em] text-neutral-600 hover:text-neutral-300 transition-colors px-3 py-2 border border-neutral-800 hover:border-neutral-600"
-                >
-                  clear ×
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={fetchData}
-                disabled={loading}
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                className="text-[11px] uppercase tracking-[0.25em] text-neutral-500 hover:text-amber-400 disabled:opacity-30 transition-colors px-3 py-2 border border-neutral-800 hover:border-amber-400/40"
+                <span
+                  className="rounded-full animate-pulse"
+                  style={{ backgroundColor: '#ffb4ab', width: 8, height: 8 }}
+                />
+                <span
+                  className="font-bold uppercase"
+                  style={{ color: '#ffb4ab', fontSize: 13 }}
+                >{`${stalledCount} active`}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-5" style={{ fontFamily: MONO }}>
+            {data && pairs.length > 0 && (
+              <span
+                className="hidden md:inline text-neutral-500 tabular-nums"
+                style={{ fontSize: 14 }}
               >
-                {loading ? 'fetching…' : '↻ refresh'}
-              </button>
-            </div>
-          </header>
+                <span className="text-amber-400">{fmt1(totalRemaining)}</span>
+                <span className="text-neutral-600">{`/${Math.round(totalPoints)}h · `}</span>
+                <span className="text-neutral-300">{totalDone}</span>
+                <span className="text-neutral-600">{`/${totalIssues}`}</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={fetchData}
+              disabled={loading}
+              className="uppercase tracking-[0.25em] text-neutral-500 hover:text-[#adc6ff] disabled:opacity-30 transition-colors border"
+              style={{ borderColor: '#424754', fontSize: 13, padding: '8px 16px' }}
+            >
+              {loading ? 'fetching…' : '↻ refresh'}
+            </button>
+          </div>
+        </header>
 
+        <main
+          className="w-full"
+          style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: 48 }}
+        >
           {error && (
-            <div className="border border-rose-900/60 bg-rose-950/20 text-rose-200 p-6 mb-8">
-              <p className="font-medium mb-2" style={{ fontFamily: '"Newsreader", serif' }}>
-                Failed to load
-              </p>
-              <p
-                className="text-xs whitespace-pre-wrap break-words"
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}
+            <div
+              className="border"
+              style={{
+                borderColor: '#ffb4ab55',
+                backgroundColor: '#ffb4ab0a',
+                color: '#ffb4ab',
+                fontFamily: MONO,
+                padding: 20,
+              }}
+            >
+              <div
+                className="uppercase tracking-wider opacity-70"
+                style={{ fontSize: 13, marginBottom: 6 }}
               >
+                load failed
+              </div>
+              <div className="whitespace-pre-wrap break-words" style={{ fontSize: 15 }}>
                 {error}
-              </p>
+              </div>
             </div>
           )}
 
           {loading && !data && (
-            <div className="flex flex-col items-center justify-center py-32 text-neutral-500">
-              <div className="w-10 h-10 border border-neutral-800 border-t-amber-400 rounded-full animate-spin mb-6" />
-              <p
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                className="text-[11px] uppercase tracking-[0.25em]"
-              >
+            <div
+              className="flex flex-col items-center justify-center text-neutral-500"
+              style={{ paddingTop: 160, paddingBottom: 160 }}
+            >
+              <div
+                className="border rounded-full animate-spin"
+                style={{
+                  borderColor: '#424754',
+                  borderTopColor: '#adc6ff',
+                  width: 40,
+                  height: 40,
+                  marginBottom: 20,
+                }}
+              />
+              <p className="uppercase tracking-[0.25em]" style={{ fontFamily: MONO, fontSize: 13 }}>
                 fetching…
               </p>
             </div>
           )}
 
           {data && pairs.length === 0 && (
-            <div className="text-center py-32">
-              <p
-                style={{ fontFamily: '"Newsreader", serif', fontStyle: 'italic' }}
-                className="text-2xl text-neutral-500"
-              >
-                No workstreams configured.
+            <div
+              className="text-center text-neutral-600"
+              style={{ fontFamily: MONO, paddingTop: 160, paddingBottom: 160 }}
+            >
+              <p className="uppercase tracking-widest" style={{ fontSize: 18 }}>
+                no workstreams configured
               </p>
-              <p
-                style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                className="text-xs text-neutral-700 mt-3 tracking-wider"
-              >
+              <p className="text-neutral-700" style={{ fontSize: 13, marginTop: 10 }}>
                 edit [tickets] in config.toml
               </p>
             </div>
           )}
 
           {data && pairs.length > 0 && (
-            <div className="space-y-6">
-              <div className="border border-neutral-800 bg-neutral-950/40">
-                <div className="px-6 pt-5 pb-1 flex items-center justify-between">
-                  <span
-                    style={{ fontFamily: '"JetBrains Mono", monospace' }}
-                    className="text-[10px] uppercase tracking-[0.25em] text-neutral-600"
-                  >
-                    hours remaining
-                  </span>
-                  <div className="flex items-center gap-3">
+            <>
+              {/* Backpressure */}
+              <section>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ paddingLeft: 6, marginBottom: 16 }}
+                >
+                  <div className="flex items-center gap-4">
+                    <span style={{ width: 8, height: 8, backgroundColor: '#adc6ff' }} />
+                    <span
+                      className="uppercase tracking-[0.25em] text-neutral-500"
+                      style={{ fontFamily: MONO, fontSize: 14 }}
+                    >
+                      Backpressure
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4" style={{ fontFamily: MONO }}>
                     {pairs.map(({ workstream: ws }, i) => (
                       <button
                         type="button"
                         key={ws.key}
                         onClick={() => handleRowClick(ws.key)}
-                        className="flex items-center gap-1.5 transition-opacity"
+                        className="flex items-center gap-2 transition-opacity"
                         style={{
                           opacity: activeWorkstream && activeWorkstream !== ws.key ? 0.3 : 1,
                         }}
                       >
                         <span
-                          className="w-3 h-0.5"
-                          style={{ backgroundColor: EPIC_COLORS[i % EPIC_COLORS.length] }}
-                        />
-                        <span
                           style={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '10px',
-                            color: '#71717a',
+                            width: 16,
+                            height: 3,
+                            backgroundColor: EPIC_COLORS[i % EPIC_COLORS.length],
                           }}
-                        >
+                        />
+                        <span className="text-neutral-500" style={{ fontSize: 13 }}>
                           {ws.key}
                         </span>
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="h-72 px-3 pt-1 pb-1">
+                <div
+                  className="border"
+                  style={{
+                    borderColor: '#424754',
+                    backgroundColor: '#1b1b1e66',
+                    height: 360,
+                    padding: 10,
+                  }}
+                >
                   <CombinedChart pairs={pairs} activeWorkstream={activeWorkstream} />
                 </div>
-                <div className="border-t border-neutral-900">
-                  {pairs.map(({ workstream: ws, bd }, i) => (
-                    <EpicStatsRow
-                      key={ws.key}
-                      workstream={ws}
-                      bd={bd}
-                      color={EPIC_COLORS[i % EPIC_COLORS.length]}
-                      isActive={activeWorkstream === ws.key}
-                      isAnyActive={activeWorkstream !== null}
-                      onClick={() => handleRowClick(ws.key)}
-                    />
-                  ))}
-                </div>
-              </div>
+              </section>
 
-              {activeTab && (
-                <TicketPanel
-                  pairs={pairs}
-                  activeTab={activeTab}
-                  onTabChange={handleTabChange}
-                  state={state}
-                  onStateChange={handleStateChange}
-                />
+              {/* Pipeline Status */}
+              <PipelineStatus
+                pairs={pairs}
+                activeWorkstream={activeWorkstream}
+                colors={EPIC_COLORS}
+                onRowClick={handleRowClick}
+              />
+
+              {/* Parity Matrix */}
+              {parityWorkstream && (
+                <section>
+                  <div
+                    className="flex items-center gap-4"
+                    style={{ paddingLeft: 6, marginBottom: 16 }}
+                  >
+                    <span style={{ width: 8, height: 8, backgroundColor: '#adc6ff' }} />
+                    <span
+                      className="uppercase tracking-[0.25em] text-neutral-500"
+                      style={{ fontFamily: MONO, fontSize: 14 }}
+                    >
+                      Parity Matrix
+                    </span>
+                  </div>
+                  <div
+                    className="border"
+                    style={{ borderColor: '#424754', backgroundColor: '#1b1b1e66' }}
+                  >
+                    <ParityMatrix workstream={parityWorkstream} />
+                  </div>
+                </section>
               )}
-            </div>
+            </>
           )}
 
           {lastUpdated && (
             <p
-              style={{ fontFamily: '"JetBrains Mono", monospace' }}
-              className="mt-12 text-[11px] text-neutral-700 text-center tracking-widest"
+              className="text-neutral-700 text-center tracking-widest"
+              style={{ fontFamily: MONO, fontSize: 13 }}
             >
               {`updated ${lastUpdated.toLocaleTimeString()}`}
             </p>
           )}
-        </div>
+        </main>
       </div>
     </ConfigContext.Provider>
   );
