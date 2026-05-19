@@ -1,5 +1,5 @@
 import type { Workstream } from '../../../shared/types.ts';
-import { useConfig, useJiraUrl } from '../lib/config-context.ts';
+import { useConfig, useTicketUrl } from '../lib/config-context.ts';
 import { buildParityMatrix } from '../lib/parity.ts';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 
 export default function ParityMatrix({ workstream }: Props) {
   const { parity } = useConfig();
-  const jiraUrl = useJiraUrl();
+  const ticketUrl = useTicketUrl();
   const { services, modules, cells } = buildParityMatrix(workstream, parity);
 
   if (services.length === 0) {
@@ -107,9 +107,15 @@ export default function ParityMatrix({ workstream }: Props) {
                     if (issue.resolutiondate) {
                       return (
                         <td key={mod} className="px-4 py-2 text-center">
-                          <span className="inline-block px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-emerald-950/50 text-emerald-400 border border-emerald-900/50">
+                          <a
+                            href={ticketUrl(issue.key, workstream.key)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={issue.key}
+                            className="inline-block px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-emerald-950/50 text-emerald-400 border border-emerald-900/50 transition-colors hover:bg-emerald-900/50"
+                          >
                             done
-                          </span>
+                          </a>
                         </td>
                       );
                     }
@@ -119,9 +125,10 @@ export default function ParityMatrix({ workstream }: Props) {
                     return (
                       <td key={mod} className="px-4 py-2 text-center">
                         <a
-                          href={jiraUrl(issue.key)}
+                          href={ticketUrl(issue.key, workstream.key)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          title={issue.key}
                           className={`text-[11px] transition-colors hover:underline ${inProg ? 'text-amber-400' : 'text-neutral-500'}`}
                         >
                           {issue.key}

@@ -48,7 +48,13 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
   if (req.url === '/api/config') {
     return json(res, 200, {
       ui: config.ui,
-      jiraBase: config.tickets.jira?.base ?? '',
+      ticketProvider: config.tickets.provider,
+      ticketBase:
+        config.tickets.provider === 'jira'
+          ? (config.tickets.jira?.base ?? '')
+          : config.tickets.provider === 'github'
+            ? 'https://github.com'
+            : '',
       parity: config.parity,
     });
   }

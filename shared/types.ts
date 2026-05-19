@@ -80,8 +80,9 @@ export interface ServerConfig {
 /** Shape returned by GET /api/config. */
 export interface ClientConfig {
   ui: UIConfig;
-  /** Base URL for linking out to Jira; empty string when provider is not Jira. */
-  jiraBase: string;
+  ticketProvider: 'jira' | 'github' | 'none';
+  /** Base URL for linking out to tickets. Jira base for jira, "https://github.com" for github, empty otherwise. */
+  ticketBase: string;
   parity: ParityConfig;
 }
 
