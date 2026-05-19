@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { StateMap, TicketState, WorkstreamPair } from '../../../shared/types.ts';
 import { EPIC_COLORS } from '../lib/burndown.ts';
-import { useConfig, useJiraUrl } from '../lib/config-context.ts';
+import { useConfig, useTicketUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
 import { AnnotationForm, AnnotationToggle } from './AnnotationPanel.tsx';
 import ParityMatrix from './ParityMatrix.tsx';
@@ -23,7 +23,7 @@ export default function TicketPanel({
   onStateChange,
 }: Props) {
   const { parity } = useConfig();
-  const jiraUrl = useJiraUrl();
+  const ticketUrl = useTicketUrl();
   const [openAnnotation, setOpenAnnotation] = useState<string | null>(null);
   const pair = pairs.find((p) => p.workstream.key === activeTab) || pairs[0];
   if (!pair) return null;
@@ -92,7 +92,7 @@ export default function TicketPanel({
                   className={`px-6 py-2.5 flex items-center gap-4 transition-colors ${done ? '' : 'hover:bg-neutral-900/20'}`}
                 >
                   <a
-                    href={jiraUrl(issue.key)}
+                    href={ticketUrl(issue.key, workstream.key)}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontFamily: '"JetBrains Mono", monospace' }}

@@ -1,5 +1,5 @@
 import type { Issue, WorkstreamPair } from '../../../shared/types.ts';
-import { useJiraUrl } from '../lib/config-context.ts';
+import { useTicketUrl } from '../lib/config-context.ts';
 
 type Stage = 'backlog' | 'progress' | 'review' | 'done';
 
@@ -16,10 +16,10 @@ function stageOf(issue: Issue): Stage {
 
 interface ChipProps {
   issue: Issue;
-  jiraUrl: (key: string) => string;
+  href: string;
 }
 
-function ActiveChip({ issue, jiraUrl }: ChipProps) {
+function ActiveChip({ issue, href }: ChipProps) {
   const inReview = stageOf(issue) === 'review';
   const accent = inReview ? 'var(--c-review)' : 'var(--c-accent)';
   const borderAccent = inReview
@@ -27,7 +27,7 @@ function ActiveChip({ issue, jiraUrl }: ChipProps) {
     : 'color-mix(in srgb, var(--c-accent) 33%, transparent)';
   return (
     <a
-      href={jiraUrl(issue.key)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
@@ -61,10 +61,10 @@ function ActiveChip({ issue, jiraUrl }: ChipProps) {
   );
 }
 
-function DoneChip({ issue, jiraUrl }: ChipProps) {
+function DoneChip({ issue, href }: ChipProps) {
   return (
     <a
-      href={jiraUrl(issue.key)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
@@ -93,7 +93,7 @@ interface RowProps {
 }
 
 function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
-  const jiraUrl = useJiraUrl();
+  const ticketUrl = useTicketUrl();
   const { workstream, bd } = pair;
   const dimmed = isAnyActive && !isActive;
 
@@ -127,16 +127,50 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
         style={{ borderRight: '1px solid var(--c-border)', width: 400, padding: '20px 24px' }}
       >
         <div className="flex items-baseline justify-between" style={{ gap: 10, marginBottom: 10 }}>
-          <span
-            className="font-bold truncate"
-            style={{
-              color: isActive ? color : 'var(--c-accent)',
-              fontFamily: MONO,
-              fontSize: 16,
-            }}
-          >
-            {workstream.summary || workstream.key}
-          </span>
+          <div className="flex items-baseline min-w-0" style={{ gap: 8 }}>
+            <span
+              className="font-bold truncate"
+              style={{
+                color: isActive ? color : 'var(--c-accent)',
+                fontFamily: MONO,
+                fontSize: 16,
+              }}
+            >
+              {workstream.summary || workstream.key}
+            </span>
+            <a
+              href={ticketUrl(workstream.key)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`Open ${workstream.key}`}
+              aria-label={`Open ${workstream.key}`}
+              className="shrink-0 transition-colors"
+              style={{ transform: 'translateY(2px)', color: 'var(--c-text-subtle)' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-text)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.color = 'var(--c-text-subtle)';
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 3h6v6" />
+                <path d="M10 14L21 3" />
+                <path d="M21 14v7H3V3h7" />
+              </svg>
+            </a>
+          </div>
           <span
             className="tabular-nums opacity-60 shrink-0"
             style={{ fontFamily: MONO, fontSize: 14 }}
@@ -174,9 +208,15 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           {/* Backlog dots */}
           {backlogDots > 0 && (
             <div className="flex items-center z-10" style={{ gap: 8 }}>
-              {Array.from({ length: backlogDots }).map((_, i) => (
-                <span
-                  key={i}
+              {buckets.backlog.slice(0, backlogDots).map((issue) => (
+                <a
+                  key={issue.key}
+                  href={ticketUrl(issue.key, workstream.key)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`${issue.key} — ${issue.summary}`}
+                  className="transition-opacity hover:opacity-60"
                   style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }}
                 />
               ))}
@@ -193,17 +233,17 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
 
           {/* In progress chips */}
           {buckets.progress.map((issue) => (
-            <ActiveChip key={issue.key} issue={issue} jiraUrl={jiraUrl} />
+            <ActiveChip key={issue.key} issue={issue} href={ticketUrl(issue.key, workstream.key)} />
           ))}
 
           {/* Review chips */}
           {buckets.review.map((issue) => (
-            <ActiveChip key={issue.key} issue={issue} jiraUrl={jiraUrl} />
+            <ActiveChip key={issue.key} issue={issue} href={ticketUrl(issue.key, workstream.key)} />
           ))}
 
           {/* Recent done */}
           {recentDone.map((issue) => (
-            <DoneChip key={issue.key} issue={issue} jiraUrl={jiraUrl} />
+            <DoneChip key={issue.key} issue={issue} href={ticketUrl(issue.key, workstream.key)} />
           ))}
           {buckets.done.length > recentDone.length && (
             <span

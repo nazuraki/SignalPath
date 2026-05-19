@@ -1,5 +1,5 @@
 import type { BurndownResult, Workstream } from '../../../shared/types.ts';
-import { useJiraUrl } from '../lib/config-context.ts';
+import { useTicketUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
 import StatusPill from './StatusPill.tsx';
 
@@ -20,7 +20,7 @@ export default function EpicStatsRow({
   isAnyActive,
   onClick,
 }: Props) {
-  const jiraUrl = useJiraUrl();
+  const ticketUrl = useTicketUrl();
   const dimmed = isAnyActive && !isActive;
   return (
     <div
@@ -50,7 +50,7 @@ export default function EpicStatsRow({
           style={{ backgroundColor: isActive ? color : '#3f3f46' }}
         />
         <a
-          href={jiraUrl(workstream.key)}
+          href={ticketUrl(workstream.key)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
