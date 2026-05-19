@@ -144,7 +144,6 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               title={`Open ${workstream.key}`}
-              aria-label={`Open ${workstream.key}`}
               className="shrink-0 transition-colors"
               style={{ transform: 'translateY(2px)', color: 'var(--c-text-subtle)' }}
               onMouseEnter={(e) => {
@@ -169,6 +168,7 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
                 <path d="M10 14L21 3" />
                 <path d="M21 14v7H3V3h7" />
               </svg>
+              <span className="sr-only">{`Open ${workstream.key}`}</span>
             </a>
           </div>
           <span
@@ -218,7 +218,9 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
                   title={`${issue.key} — ${issue.summary}`}
                   className="transition-opacity hover:opacity-60"
                   style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }}
-                />
+                >
+                  <span className="sr-only">{`${issue.key} — ${issue.summary}`}</span>
+                </a>
               ))}
               {backlogOverflow > 0 && (
                 <span

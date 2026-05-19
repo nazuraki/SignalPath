@@ -125,8 +125,8 @@ body {
 .icon-btn {
   transition: color 0.15s;
 }
-.icon-btn:hover {
-  color: var(--c-accent) !important;
+.icon-btn.icon-btn:hover {
+  color: var(--c-accent);
 }
 
 .truncate-fade {
