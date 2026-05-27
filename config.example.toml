@@ -66,6 +66,18 @@ epics = [
 # [[tickets.github.repos]]
 # owner = "myorg"
 # repo  = "frontend"    # no milestones — whole repo is the workstream
+#
+# GitHub has no native LOE/story-points field, so map issue labels to points.
+# Matching is case-insensitive; the first label on an issue that appears in
+# this map wins. Issues with no matching label have points = null and are
+# flagged as missing LOE on the dashboard.
+#
+# [tickets.github.points_labels]
+# "size/xs" = 1
+# "size/s"  = 2
+# "size/m"  = 3
+# "size/l"  = 5
+# "size/xl" = 8
 
 # ----------------------------------------------------------------------------
 # Deploy provider — reserved for future integrations (Argo CD, Docker, etc.)

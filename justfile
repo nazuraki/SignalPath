@@ -1,3 +1,5 @@
+# SignalPath — local dashboard that unifies Jira, GitHub, Argo, and Grafana for a single work stream
+
 # Show available recipes
 default:
     @just --list
@@ -15,11 +17,11 @@ dev:
     npm run dev
 
 # Run API server only
-dev-server:
+devserver:
     npm run dev:server
 
 # Run Vite client only
-dev-client:
+devclient:
     npm run dev:client
 
 # Build client bundle to ./dist
@@ -27,8 +29,11 @@ build:
     npm run build
 
 # Run production mode: built client served by the API process
-start: build
+run: build
     npm start
+
+# Alias for run (kept for muscle memory)
+start: run
 
 # Run Biome lint + format check
 lint:
@@ -47,7 +52,7 @@ test:
     npm test
 
 # Watch-mode tests
-test-watch:
+testwatch:
     npm run test:watch
 
 # Run everything CI runs: lint, typecheck, test, build
@@ -56,6 +61,9 @@ check: lint typecheck test build
 # Remove build artifacts and installed deps
 clean:
     rm -rf dist node_modules
+
+# Clean and reinstall from scratch
+fresh: clean install
 
 # Hit the API endpoints against a running dev server (port 3001)
 ping:

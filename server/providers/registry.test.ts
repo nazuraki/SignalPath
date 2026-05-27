@@ -20,7 +20,7 @@ const jiraConfig: TicketsConfig = {
 const githubConfig: TicketsConfig = {
   provider: 'github',
   stageMap: {},
-  github: { token: 'ghp_test', repos: [{ owner: 'org', repo: 'repo' }] },
+  github: { token: 'ghp_test', repos: [{ owner: 'org', repo: 'repo' }], pointsLabels: {} },
 };
 
 describe('createTicketProvider', () => {

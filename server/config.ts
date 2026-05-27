@@ -56,6 +56,7 @@ type RawConfig = {
     github?: {
       token?: string;
       repos?: RawGitHubRepo[];
+      points_labels?: Record<string, number>;
     };
     stage_map?: Record<string, string>;
   };
@@ -76,6 +77,21 @@ try {
 } catch (e) {
   console.error(`Failed to parse config.toml: ${(e as Error).message}`);
   process.exit(1);
+}
+
+function normalizePointsLabels(raw: Record<string, number> | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw) return out;
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      console.error(
+        `config.toml: [tickets.github.points_labels] "${k}" = ${JSON.stringify(v)} — must be a number.`,
+      );
+      process.exit(1);
+    }
+    out[k.toLowerCase()] = v;
+  }
+  return out;
 }
 
 if (parsed.jira !== undefined) {
@@ -131,6 +147,7 @@ export const config: ServerConfig = {
             repo: r.repo ?? '',
             milestones: r.milestones,
           })),
+          pointsLabels: normalizePointsLabels(parsed.tickets.github.points_labels),
         }
       : undefined,
   },

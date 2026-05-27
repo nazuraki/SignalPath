@@ -33,14 +33,24 @@ const day = (s: string | null | undefined): string | null => (s ? s.slice(0, 10)
 export class GitHubTicketProvider implements TicketProvider {
   private readonly headers: Record<string, string>;
   private readonly repos: GitHubRepoConfig[];
+  private readonly pointsLabels: Record<string, number>;
 
   constructor(cfg: GitHubTicketConfig) {
     this.repos = cfg.repos;
+    this.pointsLabels = cfg.pointsLabels;
     this.headers = {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       ...(cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {}),
     };
+  }
+
+  private pointsFromLabels(labels: Array<{ name: string }>): number | null {
+    for (const { name } of labels) {
+      const pts = this.pointsLabels[name.toLowerCase()];
+      if (pts !== undefined) return pts;
+    }
+    return null;
   }
 
   private async ghget<T>(path: string): Promise<T> {
@@ -77,7 +87,7 @@ export class GitHubTicketProvider implements TicketProvider {
       key: `#${i.number}`,
       summary: i.title,
       status: i.state,
-      points: null,
+      points: this.pointsFromLabels(i.labels),
       resolutiondate: day(i.closed_at),
       labels: i.labels.map((l) => l.name),
       components: [],

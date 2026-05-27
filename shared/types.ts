@@ -58,6 +58,8 @@ export interface GitHubRepoConfig {
 export interface GitHubTicketConfig {
   token: string;
   repos: GitHubRepoConfig[];
+  /** Label name (case-insensitive) → points. First matching label on an issue wins. */
+  pointsLabels: Record<string, number>;
 }
 
 export interface TicketsConfig {

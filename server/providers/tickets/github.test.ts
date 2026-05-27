@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GitHubTicketConfig } from '../../../shared/types.ts';
 import { GitHubTicketProvider } from './github.ts';
 
-const cfg = (repos: GitHubTicketConfig['repos']): GitHubTicketConfig => ({
+const cfg = (
+  repos: GitHubTicketConfig['repos'],
+  pointsLabels: Record<string, number> = {},
+): GitHubTicketConfig => ({
   token: 'ghp_test',
   repos,
+  pointsLabels,
 });
 
 const milestone = (overrides: object = {}) => ({
@@ -108,6 +112,33 @@ describe('GitHubTicketProvider — repo-as-workstream (no milestones)', () => {
     const provider = new GitHubTicketProvider(cfg([{ owner: 'myorg', repo: 'backend' }]));
     const [ws] = await provider.fetchWorkstreams();
     expect(ws.issues).toHaveLength(1);
+  });
+});
+
+describe('GitHubTicketProvider — points from labels', () => {
+  it('maps the first matching label to points (case-insensitive)', async () => {
+    const issue = ghIssue({ labels: [{ name: 'bug' }, { name: 'Size/L' }] });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify(ghRepo()), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([issue]), { status: 200 }));
+
+    const provider = new GitHubTicketProvider(
+      cfg([{ owner: 'myorg', repo: 'backend' }], { 'size/l': 5, 'size/m': 3 }),
+    );
+    const [ws] = await provider.fetchWorkstreams();
+    expect(ws.issues[0].points).toBe(5);
+  });
+
+  it('leaves points null when no labels match', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify(ghRepo()), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([ghIssue()]), { status: 200 }));
+
+    const provider = new GitHubTicketProvider(
+      cfg([{ owner: 'myorg', repo: 'backend' }], { 'size/l': 5 }),
+    );
+    const [ws] = await provider.fetchWorkstreams();
+    expect(ws.issues[0].points).toBeNull();
   });
 });
 

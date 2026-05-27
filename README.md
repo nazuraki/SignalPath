@@ -7,6 +7,12 @@ through deploy, surfaces cross-stream dependencies, and links out to the relevan
 Today it renders epic burndown charts and an optional service-parity matrix from Jira.
 Future work layers a local augmentation store on top, then GitHub / Argo / Grafana.
 
+See [docs/PURPOSE.md](docs/PURPOSE.md) for the problem statement, non-goals, and intended audience.
+
+## License
+
+MIT
+
 ## Stack
 
 - **Server:** Node (>= 24), TypeScript via `tsx`, plain HTTP, no framework
@@ -35,7 +41,7 @@ just lint               # Biome lint + format check
 just fix                # Biome auto-fix
 just typecheck          # tsc --noEmit
 just test               # run Vitest once
-just test-watch         # Vitest watch mode
+just testwatch          # Vitest watch mode
 just check              # lint + typecheck + test + build (what CI runs)
 ```
 
