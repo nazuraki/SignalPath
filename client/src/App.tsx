@@ -6,6 +6,7 @@ import PipelineStatus from './components/PipelineStatus.tsx';
 import { computeBurndown, EPIC_COLORS, HOURS_PER_WEEK, remainingHours } from './lib/burndown.ts';
 import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
 import { fmt1 } from './lib/format.ts';
+import { countMissingLOE } from './lib/loe.ts';
 
 interface BurndownResponse {
   workstreams: Workstream[];
@@ -118,6 +119,7 @@ export default function App() {
   const totalDone = pairs.reduce((s, { bd }) => s + bd.doneCount, 0);
   const totalIssues = pairs.reduce((s, { bd }) => s + bd.issueCount, 0);
   const stalledCount = pairs.filter(({ bd }) => bd.pctComplete > 0 && bd.pctComplete < 100).length;
+  const missingLOE = countMissingLOE(pairs);
 
   const handleRowClick = (key: string): void => {
     setActiveWorkstream(activeWorkstream === key ? null : key);
@@ -321,6 +323,27 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+                {missingLOE.unresolved > 0 && (
+                  <div
+                    className="border flex items-center"
+                    style={{
+                      borderColor: 'var(--c-warn-border, #b45309)',
+                      backgroundColor: 'var(--c-warn-bg, rgba(245, 158, 11, 0.08))',
+                      color: 'var(--c-warn, #f59e0b)',
+                      fontFamily: MONO,
+                      fontSize: 13,
+                      padding: '8px 14px',
+                      marginBottom: 10,
+                      gap: 10,
+                    }}
+                    role="status"
+                  >
+                    <span aria-hidden="true">⚠</span>
+                    <span>
+                      {`${missingLOE.unresolved} unresolved ticket${missingLOE.unresolved === 1 ? '' : 's'} missing LOE — burndown estimate may be inaccurate`}
+                    </span>
+                  </div>
+                )}
                 <div
                   className="border"
                   style={{
