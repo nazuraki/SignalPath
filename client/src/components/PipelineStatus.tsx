@@ -1,5 +1,6 @@
 import type { Issue, Stage, WorkstreamPair } from '../../../shared/types.ts';
 import { useConfig, useTicketUrl } from '../lib/config-context.ts';
+import { hasLOE } from '../lib/loe.ts';
 import { stageOf } from '../lib/stage.ts';
 
 const MONO = '"JetBrains Mono", monospace';
@@ -30,6 +31,29 @@ interface ChipProps {
   href: string;
 }
 
+function NoLOEBadge() {
+  return (
+    <span
+      title="No LOE set — burndown estimate may be inaccurate"
+      role="img"
+      aria-label="No LOE set"
+      className="inline-flex items-center justify-center border tabular-nums"
+      style={{
+        borderColor: 'var(--c-warn-border, #b45309)',
+        color: 'var(--c-warn, #f59e0b)',
+        backgroundColor: 'var(--c-warn-bg, rgba(245, 158, 11, 0.08))',
+        fontFamily: MONO,
+        fontSize: 10,
+        lineHeight: 1,
+        width: 14,
+        height: 14,
+      }}
+    >
+      ?
+    </span>
+  );
+}
+
 interface ActiveChipProps extends ChipProps {
   stage: Stage;
 }
@@ -37,6 +61,7 @@ interface ActiveChipProps extends ChipProps {
 function ActiveChip({ issue, href, stage }: ActiveChipProps) {
   const accent = STAGE_ACCENT[stage];
   const borderAccent = `color-mix(in srgb, ${accent} 33%, transparent)`;
+  const missingLOE = !hasLOE(issue);
   return (
     <a
       href={href}
@@ -56,8 +81,12 @@ function ActiveChip({ issue, href, stage }: ActiveChipProps) {
       }}
     >
       <div className="flex items-center justify-between" style={{ gap: 16 }}>
-        <span className="font-bold" style={{ color: accent, fontSize: 14 }}>
+        <span
+          className="font-bold flex items-center"
+          style={{ color: accent, fontSize: 14, gap: 6 }}
+        >
           {issue.key}
+          {missingLOE && <NoLOEBadge />}
         </span>
         <span className="uppercase tracking-wider opacity-50" style={{ fontSize: 13 }}>
           {STAGE_LABEL[stage]}
@@ -128,6 +157,7 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
 
   const backlogDots = Math.min(buckets.backlog.length, 6);
   const backlogOverflow = buckets.backlog.length - backlogDots;
+  const missingLOECount = workstream.issues.filter((i) => !hasLOE(i) && !i.resolutiondate).length;
   return (
     <div
       onClick={onClick}
@@ -216,6 +246,14 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           {`/${bd.issueCount} issues · `}
           <span className="text-neutral-300">{Math.round(bd.completedPoints)}</span>
           {`/${Math.round(bd.totalPoints)}h`}
+          {missingLOECount > 0 && (
+            <span
+              title={`${missingLOECount} unresolved ticket${missingLOECount === 1 ? '' : 's'} missing LOE`}
+              style={{ color: 'var(--c-warn, #f59e0b)', marginLeft: 8 }}
+            >
+              {` · ${missingLOECount} no LOE`}
+            </span>
+          )}
         </div>
       </div>
 
@@ -229,20 +267,37 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
           {/* Backlog dots */}
           {backlogDots > 0 && (
             <div className="flex items-center z-10" style={{ gap: 8 }}>
-              {buckets.backlog.slice(0, backlogDots).map((issue) => (
-                <a
-                  key={issue.key}
-                  href={ticketUrl(issue.key, workstream.key)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  title={`${issue.key} — ${issue.summary}`}
-                  className="transition-opacity hover:opacity-60"
-                  style={{ width: 8, height: 8, backgroundColor: 'var(--c-backlog)' }}
-                >
-                  <span className="sr-only">{`${issue.key} — ${issue.summary}`}</span>
-                </a>
-              ))}
+              {buckets.backlog.slice(0, backlogDots).map((issue) => {
+                const missingLOE = !hasLOE(issue);
+                return (
+                  <a
+                    key={issue.key}
+                    href={ticketUrl(issue.key, workstream.key)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    title={
+                      missingLOE
+                        ? `${issue.key} — ${issue.summary} · no LOE set`
+                        : `${issue.key} — ${issue.summary}`
+                    }
+                    className="transition-opacity hover:opacity-60"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      backgroundColor: missingLOE ? 'transparent' : 'var(--c-backlog)',
+                      border: missingLOE ? '1px solid var(--c-backlog)' : 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <span className="sr-only">
+                      {missingLOE
+                        ? `${issue.key} — ${issue.summary} · no LOE set`
+                        : `${issue.key} — ${issue.summary}`}
+                    </span>
+                  </a>
+                );
+              })}
               {backlogOverflow > 0 && (
                 <span
                   className="text-neutral-600"

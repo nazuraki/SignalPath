@@ -1,5 +1,6 @@
 import type { Workstream } from '../../../shared/types.ts';
 import { useConfig, useTicketUrl } from '../lib/config-context.ts';
+import { hasLOE } from '../lib/loe.ts';
 import { buildParityMatrix } from '../lib/parity.ts';
 import { stageOf } from '../lib/stage.ts';
 
@@ -122,16 +123,27 @@ export default function ParityMatrix({ workstream }: Props) {
                     }
                     const s = stageOf(issue, stageMap);
                     const inProg = s !== 'backlog' && s !== 'done';
+                    const missingLOE = !hasLOE(issue);
                     return (
                       <td key={mod} className="px-4 py-2 text-center">
                         <a
                           href={ticketUrl(issue.key, workstream.key)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title={issue.key}
+                          title={missingLOE ? `${issue.key} — no LOE set` : issue.key}
                           className={`text-[11px] transition-colors hover:underline ${inProg ? 'text-amber-400' : 'text-neutral-500'}`}
                         >
                           {issue.key}
+                          {missingLOE && (
+                            <span
+                              role="img"
+                              aria-label="No LOE set"
+                              className="ml-1"
+                              style={{ color: 'var(--c-warn, #f59e0b)' }}
+                            >
+                              ?
+                            </span>
+                          )}
                         </a>
                       </td>
                     );
