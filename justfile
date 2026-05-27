@@ -58,6 +58,22 @@ testwatch:
 # Run everything CI runs: lint, typecheck, test, build
 check: lint typecheck test build
 
+# Build Docker image
+docker-build:
+    docker build -t signalpath:latest .
+
+# Run Docker container (detached, via compose — mounts config.toml + data/)
+docker-run:
+    docker compose up -d --build
+
+# Stop and remove the Docker container
+docker-stop:
+    docker compose down
+
+# Tail Docker container logs
+docker-logs:
+    docker compose logs -f
+
 # Remove build artifacts and installed deps
 clean:
     rm -rf dist node_modules

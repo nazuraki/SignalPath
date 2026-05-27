@@ -7,7 +7,7 @@ title = "Project Orchestrator"
 subtitle = "local"
 
 [server]
-port = 3001
+port = 5167
 
 # ----------------------------------------------------------------------------
 # Ticket provider

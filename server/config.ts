@@ -125,7 +125,7 @@ export const config: ServerConfig = {
     subtitle: parsed.ui?.subtitle ?? '',
   },
   server: {
-    port: parsed.server?.port ?? 3001,
+    port: parsed.server?.port ?? 5167,
   },
   tickets: {
     provider: ticketsProvider,

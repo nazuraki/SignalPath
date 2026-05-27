@@ -62,7 +62,7 @@ title    = "Project Orchestrator"
 subtitle = "local"                # optional eyebrow text shown above the title
 
 [server]
-port = 3001                       # API port; Vite dev server uses 5173 separately
+port = 5167                       # API port; Vite dev server uses 5173 separately
 
 [jira]
 base      = "https://your-org.atlassian.net"
