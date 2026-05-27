@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG: ClientConfig = {
   ui: { title: 'Project Orchestrator', subtitle: '' },
   ticketProvider: 'none',
   ticketBase: '',
+  stageMap: {},
   parity: { epic: null, svcMap: {}, svcLabelMap: {}, modMap: {}, na: {} },
 };
 

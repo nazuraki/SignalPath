@@ -1,3 +1,12 @@
+export type Stage =
+  | 'backlog'
+  | 'progress'
+  | 'review'
+  | 'pending'
+  | 'releasing'
+  | 'released'
+  | 'done';
+
 export interface Issue {
   key: string;
   summary: string;
@@ -55,6 +64,8 @@ export interface TicketsConfig {
   provider: 'jira' | 'github' | 'none';
   jira?: JiraTicketConfig;
   github?: GitHubTicketConfig;
+  /** Maps a provider status string (case-insensitive) to a SignalPath stage. */
+  stageMap: Record<string, Stage>;
 }
 
 export interface DeploysConfig {
@@ -83,6 +94,8 @@ export interface ClientConfig {
   ticketProvider: 'jira' | 'github' | 'none';
   /** Base URL for linking out to tickets. Jira base for jira, "https://github.com" for github, empty otherwise. */
   ticketBase: string;
+  /** Provider status string (case-insensitive) → SignalPath stage. */
+  stageMap: Record<string, Stage>;
   parity: ParityConfig;
 }
 

@@ -2,7 +2,21 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'smol-toml';
-import type { ServerConfig } from '../shared/types.ts';
+import type { ServerConfig, Stage } from '../shared/types.ts';
+
+const DEFAULT_STAGE_MAP: Record<string, Stage> = {
+  'ready for release': 'pending',
+};
+
+const VALID_STAGES: ReadonlySet<Stage> = new Set([
+  'backlog',
+  'progress',
+  'review',
+  'pending',
+  'releasing',
+  'released',
+  'done',
+]);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -43,6 +57,7 @@ type RawConfig = {
       token?: string;
       repos?: RawGitHubRepo[];
     };
+    stage_map?: Record<string, string>;
   };
   deploys?: { provider?: string };
   metrics?: { provider?: string };
@@ -72,6 +87,22 @@ if (parsed.jira !== undefined) {
 
 const ticketsProvider = (parsed.tickets?.provider ?? 'none') as ServerConfig['tickets']['provider'];
 
+const rawStageMap = parsed.tickets?.stage_map;
+const stageMap: Record<string, Stage> = {};
+if (rawStageMap === undefined) {
+  for (const [k, v] of Object.entries(DEFAULT_STAGE_MAP)) stageMap[k] = v;
+} else {
+  for (const [k, v] of Object.entries(rawStageMap)) {
+    if (!VALID_STAGES.has(v as Stage)) {
+      console.error(
+        `config.toml: [tickets.stage_map] "${k}" = "${v}" — "${v}" is not a valid stage. Valid: ${[...VALID_STAGES].join(', ')}`,
+      );
+      process.exit(1);
+    }
+    stageMap[k.toLowerCase()] = v as Stage;
+  }
+}
+
 export const config: ServerConfig = {
   ui: {
     title: parsed.ui?.title ?? 'Project Orchestrator',
@@ -91,6 +122,7 @@ export const config: ServerConfig = {
           epics: parsed.tickets.jira.epics ?? [],
         }
       : undefined,
+    stageMap,
     github: parsed.tickets?.github
       ? {
           token: parsed.tickets.github.token ?? '',

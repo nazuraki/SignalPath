@@ -3,6 +3,7 @@ import type { StateMap, TicketState, WorkstreamPair } from '../../../shared/type
 import { EPIC_COLORS } from '../lib/burndown.ts';
 import { useConfig, useTicketUrl } from '../lib/config-context.ts';
 import { fmt1, fmtDate } from '../lib/format.ts';
+import { stageOf } from '../lib/stage.ts';
 import { AnnotationForm, AnnotationToggle } from './AnnotationPanel.tsx';
 import ParityMatrix from './ParityMatrix.tsx';
 import StatusPill from './StatusPill.tsx';
@@ -22,19 +23,20 @@ export default function TicketPanel({
   state,
   onStateChange,
 }: Props) {
-  const { parity } = useConfig();
+  const { parity, stageMap } = useConfig();
   const ticketUrl = useTicketUrl();
   const [openAnnotation, setOpenAnnotation] = useState<string | null>(null);
   const pair = pairs.find((p) => p.workstream.key === activeTab) || pairs[0];
   if (!pair) return null;
   const { workstream } = pair;
 
+  // Sort: active stages first (progress → released), then backlog, then done.
   const issues = [...(workstream.issues || [])].sort((a, b) => {
     const w = (i: typeof a): number => {
-      if (i.resolutiondate) return 2;
-      const s = i.status.toLowerCase();
-      if (s.includes('progress') || s.includes('review')) return 0;
-      return 1;
+      const s = stageOf(i, stageMap);
+      if (s === 'done') return 2;
+      if (s === 'backlog') return 1;
+      return 0;
     };
     return w(a) - w(b);
   });

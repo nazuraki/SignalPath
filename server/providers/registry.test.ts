@@ -7,6 +7,7 @@ import { NullTicketProvider } from './tickets/null.ts';
 
 const jiraConfig: TicketsConfig = {
   provider: 'jira',
+  stageMap: {},
   jira: {
     base: 'https://x.atlassian.net',
     email: 'a@b.com',
@@ -18,6 +19,7 @@ const jiraConfig: TicketsConfig = {
 
 const githubConfig: TicketsConfig = {
   provider: 'github',
+  stageMap: {},
   github: { token: 'ghp_test', repos: [{ owner: 'org', repo: 'repo' }] },
 };
 
@@ -31,15 +33,21 @@ describe('createTicketProvider', () => {
   });
 
   it('returns NullTicketProvider for provider = "none"', () => {
-    expect(createTicketProvider({ provider: 'none' })).toBeInstanceOf(NullTicketProvider);
+    expect(createTicketProvider({ provider: 'none', stageMap: {} })).toBeInstanceOf(
+      NullTicketProvider,
+    );
   });
 
   it('throws when jira provider config is missing', () => {
-    expect(() => createTicketProvider({ provider: 'jira' })).toThrow('[tickets.jira]');
+    expect(() => createTicketProvider({ provider: 'jira', stageMap: {} })).toThrow(
+      '[tickets.jira]',
+    );
   });
 
   it('throws when github provider config is missing', () => {
-    expect(() => createTicketProvider({ provider: 'github' })).toThrow('[tickets.github]');
+    expect(() => createTicketProvider({ provider: 'github', stageMap: {} })).toThrow(
+      '[tickets.github]',
+    );
   });
 });
 

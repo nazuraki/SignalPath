@@ -1,30 +1,42 @@
-import type { Issue, WorkstreamPair } from '../../../shared/types.ts';
-import { useTicketUrl } from '../lib/config-context.ts';
-
-type Stage = 'backlog' | 'progress' | 'review' | 'done';
+import type { Issue, Stage, WorkstreamPair } from '../../../shared/types.ts';
+import { useConfig, useTicketUrl } from '../lib/config-context.ts';
+import { stageOf } from '../lib/stage.ts';
 
 const MONO = '"JetBrains Mono", monospace';
 const INTER = 'Inter, system-ui, sans-serif';
 
-function stageOf(issue: Issue): Stage {
-  if (issue.resolutiondate) return 'done';
-  const s = issue.status.toLowerCase();
-  if (s.includes('review')) return 'review';
-  if (s.includes('progress') || s.includes('doing')) return 'progress';
-  return 'backlog';
-}
+const STAGE_ACCENT: Record<Stage, string> = {
+  backlog: 'var(--c-backlog)',
+  progress: 'var(--c-accent)',
+  review: 'var(--c-review)',
+  pending: 'var(--c-pending)',
+  releasing: 'var(--c-releasing)',
+  released: 'var(--c-released)',
+  done: 'var(--c-done)',
+};
+
+const STAGE_LABEL: Record<Stage, string> = {
+  backlog: 'backlog',
+  progress: 'in prog',
+  review: 'review',
+  pending: 'pending',
+  releasing: 'releasing',
+  released: 'released',
+  done: 'done',
+};
 
 interface ChipProps {
   issue: Issue;
   href: string;
 }
 
-function ActiveChip({ issue, href }: ChipProps) {
-  const inReview = stageOf(issue) === 'review';
-  const accent = inReview ? 'var(--c-review)' : 'var(--c-accent)';
-  const borderAccent = inReview
-    ? 'color-mix(in srgb, var(--c-review) 33%, transparent)'
-    : 'color-mix(in srgb, var(--c-accent) 33%, transparent)';
+interface ActiveChipProps extends ChipProps {
+  stage: Stage;
+}
+
+function ActiveChip({ issue, href, stage }: ActiveChipProps) {
+  const accent = STAGE_ACCENT[stage];
+  const borderAccent = `color-mix(in srgb, ${accent} 33%, transparent)`;
   return (
     <a
       href={href}
@@ -48,7 +60,7 @@ function ActiveChip({ issue, href }: ChipProps) {
           {issue.key}
         </span>
         <span className="uppercase tracking-wider opacity-50" style={{ fontSize: 13 }}>
-          {inReview ? 'review' : 'in prog'}
+          {STAGE_LABEL[stage]}
         </span>
       </div>
       <span
@@ -94,11 +106,20 @@ interface RowProps {
 
 function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
   const ticketUrl = useTicketUrl();
+  const { stageMap } = useConfig();
   const { workstream, bd } = pair;
   const dimmed = isAnyActive && !isActive;
 
-  const buckets: Record<Stage, Issue[]> = { backlog: [], progress: [], review: [], done: [] };
-  for (const i of workstream.issues) buckets[stageOf(i)].push(i);
+  const buckets: Record<Stage, Issue[]> = {
+    backlog: [],
+    progress: [],
+    review: [],
+    pending: [],
+    releasing: [],
+    released: [],
+    done: [],
+  };
+  for (const i of workstream.issues) buckets[stageOf(i, stageMap)].push(i);
 
   const recentDone = buckets.done
     .slice()
@@ -235,12 +256,52 @@ function Row({ pair, isActive, isAnyActive, color, onClick }: RowProps) {
 
           {/* In progress chips */}
           {buckets.progress.map((issue) => (
-            <ActiveChip key={issue.key} issue={issue} href={ticketUrl(issue.key, workstream.key)} />
+            <ActiveChip
+              key={issue.key}
+              issue={issue}
+              stage="progress"
+              href={ticketUrl(issue.key, workstream.key)}
+            />
           ))}
 
           {/* Review chips */}
           {buckets.review.map((issue) => (
-            <ActiveChip key={issue.key} issue={issue} href={ticketUrl(issue.key, workstream.key)} />
+            <ActiveChip
+              key={issue.key}
+              issue={issue}
+              stage="review"
+              href={ticketUrl(issue.key, workstream.key)}
+            />
+          ))}
+
+          {/* Pending release */}
+          {buckets.pending.map((issue) => (
+            <ActiveChip
+              key={issue.key}
+              issue={issue}
+              stage="pending"
+              href={ticketUrl(issue.key, workstream.key)}
+            />
+          ))}
+
+          {/* Releasing */}
+          {buckets.releasing.map((issue) => (
+            <ActiveChip
+              key={issue.key}
+              issue={issue}
+              stage="releasing"
+              href={ticketUrl(issue.key, workstream.key)}
+            />
+          ))}
+
+          {/* Released */}
+          {buckets.released.map((issue) => (
+            <ActiveChip
+              key={issue.key}
+              issue={issue}
+              stage="released"
+              href={ticketUrl(issue.key, workstream.key)}
+            />
           ))}
 
           {/* Recent done */}
@@ -302,6 +363,9 @@ export default function PipelineStatus({ pairs, activeWorkstream, colors, onRowC
           <Legend swatch="var(--c-backlog)" label="Backlog" />
           <Legend swatch="var(--c-accent)" label="In Progress" />
           <Legend swatch="var(--c-review)" label="Review" />
+          <Legend swatch="var(--c-pending)" label="Pending" />
+          <Legend swatch="var(--c-releasing)" label="Releasing" />
+          <Legend swatch="var(--c-released)" label="Released" />
           <Legend swatch="var(--c-done)" label="Done" />
         </div>
       </div>
