@@ -32,6 +32,24 @@ epics = [
   "PROJ-2",
 ]
 
+# ---- Stage map -------------------------------------------------------------
+# Maps a provider status string (case-insensitive) to a SignalPath pipeline
+# stage. Valid stages: "backlog", "progress", "review", "pending",
+# "releasing", "released", "done".
+#
+# If this section is omitted, the built-in default is used:
+#   "Ready for Release" = "pending"
+#
+# If present, this section replaces the defaults wholesale. To disable all
+# mapping, set an empty section: `[tickets.stage_map]` with no entries.
+# Statuses not listed here fall back to heuristic matching on "review",
+# "progress"/"doing", and resolutiondate.
+#
+# [tickets.stage_map]
+# "Ready for Release" = "pending"
+# "Releasing"         = "releasing"
+# "Released"          = "released"
+
 # ---- GitHub Issues (used when provider = "github") -------------------------
 # Each [[tickets.github.repos]] entry is one or more workstreams.
 # If `milestones` is set, each milestone number becomes a separate workstream.

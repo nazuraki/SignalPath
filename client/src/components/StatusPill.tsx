@@ -7,6 +7,7 @@ export default function StatusPill({ status }: Props) {
   let color = 'bg-neutral-800 text-neutral-400 border-neutral-700';
   if (s.includes('progress') || s.includes('review'))
     color = 'bg-amber-950/40 text-amber-300 border-amber-900/60';
+  else if (s.includes('release')) color = 'bg-lime-950/40 text-lime-300 border-lime-900/60';
   else if (s.includes('done') || s.includes('closed') || s.includes('resolved'))
     color = 'bg-emerald-950/40 text-emerald-300 border-emerald-900/60';
   else if (s.includes('block')) color = 'bg-rose-950/40 text-rose-300 border-rose-900/60';

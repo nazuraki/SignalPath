@@ -17,6 +17,9 @@
   --c-done-bg: rgba(0, 227, 139, 0.05);
   --c-done-border: rgba(0, 227, 139, 0.2);
   --c-review: #ffb786;
+  --c-pending: #e6d77a;
+  --c-releasing: #a3e08a;
+  --c-released: #4ed6a3;
   --c-grid: #1f1f23;
   --c-axis: #52525b;
   --c-tooltip-bg: #0c0c0d;
@@ -43,6 +46,9 @@
   --c-done-bg: rgba(0, 122, 72, 0.08);
   --c-done-border: rgba(0, 122, 72, 0.25);
   --c-review: #b85000;
+  --c-pending: #8a6d00;
+  --c-releasing: #3a7a1c;
+  --c-released: #086c46;
   --c-grid: #e0e0e8;
   --c-axis: #8888a0;
   --c-tooltip-bg: #ffffff;

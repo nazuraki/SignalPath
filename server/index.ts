@@ -55,6 +55,7 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
           : config.tickets.provider === 'github'
             ? 'https://github.com'
             : '',
+      stageMap: config.tickets.stageMap,
       parity: config.parity,
     });
   }

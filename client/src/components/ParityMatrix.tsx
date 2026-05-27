@@ -1,13 +1,14 @@
 import type { Workstream } from '../../../shared/types.ts';
 import { useConfig, useTicketUrl } from '../lib/config-context.ts';
 import { buildParityMatrix } from '../lib/parity.ts';
+import { stageOf } from '../lib/stage.ts';
 
 interface Props {
   workstream: Workstream;
 }
 
 export default function ParityMatrix({ workstream }: Props) {
-  const { parity } = useConfig();
+  const { parity, stageMap } = useConfig();
   const ticketUrl = useTicketUrl();
   const { services, modules, cells } = buildParityMatrix(workstream, parity);
 
@@ -119,9 +120,8 @@ export default function ParityMatrix({ workstream }: Props) {
                         </td>
                       );
                     }
-                    const inProg =
-                      issue.status.toLowerCase().includes('progress') ||
-                      issue.status.toLowerCase().includes('review');
+                    const s = stageOf(issue, stageMap);
+                    const inProg = s !== 'backlog' && s !== 'done';
                     return (
                       <td key={mod} className="px-4 py-2 text-center">
                         <a
