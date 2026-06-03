@@ -82,6 +82,40 @@ describe('JiraTicketProvider.fetchWorkstreams', () => {
     await expect(provider.fetchWorkstreams()).rejects.toThrow('Jira 401');
   });
 
+  it('falls back to spFieldFallback when primary field is absent', async () => {
+    const cfgWithFallback: JiraTicketConfig = {
+      ...cfg,
+      spFieldFallback: 'customfield_10016',
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify(makeMeta()), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            issues: [
+              {
+                key: 'PROJ-3',
+                fields: {
+                  summary: 'Bug without time estimate',
+                  status: { name: 'In Progress' },
+                  resolutiondate: null,
+                  // no timeoriginalestimate
+                  customfield_10016: 3,
+                  labels: [],
+                  components: [],
+                },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const provider = new JiraTicketProvider(cfgWithFallback);
+    const [ws] = await provider.fetchWorkstreams();
+    expect(ws.issues[0].points).toBe(3);
+  });
+
   it('handles missing kids gracefully', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(new Response(JSON.stringify(makeMeta()), { status: 200 }))
