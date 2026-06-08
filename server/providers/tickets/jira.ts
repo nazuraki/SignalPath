@@ -77,11 +77,7 @@ export class JiraTicketProvider implements TicketProvider {
       const raw = i.fields[this.spField];
       const rawFallback = this.spFieldFallback ? i.fields[this.spFieldFallback] : undefined;
       const points =
-        typeof raw === 'number'
-          ? raw / 3600
-          : typeof rawFallback === 'number'
-            ? rawFallback
-            : null;
+        typeof raw === 'number' ? raw / 3600 : typeof rawFallback === 'number' ? rawFallback : null;
       return {
         key: i.key,
         summary: i.fields.summary,
