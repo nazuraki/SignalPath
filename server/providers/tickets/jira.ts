@@ -25,11 +25,13 @@ export class JiraTicketProvider implements TicketProvider {
   private readonly auth: string;
   private readonly base: string;
   private readonly spField: string;
+  private readonly spFieldFallback: string | undefined;
   private readonly epics: string[];
 
   constructor(cfg: JiraTicketConfig) {
     this.base = cfg.base;
     this.spField = cfg.spField;
+    this.spFieldFallback = cfg.spFieldFallback;
     this.epics = cfg.epics;
     this.auth = `Basic ${Buffer.from(`${cfg.email}:${cfg.apiToken}`).toString('base64')}`;
 
@@ -57,7 +59,15 @@ export class JiraTicketProvider implements TicketProvider {
       this.jget<JiraSearchResponse>(
         `/rest/api/3/search/jql?${new URLSearchParams({
           jql: `parent = ${key}`,
-          fields: `summary,status,resolutiondate,${this.spField},labels,components`,
+          fields: [
+            'summary',
+            'status',
+            'resolutiondate',
+            this.spField,
+            ...(this.spFieldFallback ? [this.spFieldFallback] : []),
+            'labels',
+            'components',
+          ].join(','),
           maxResults: '100',
         })}`,
       ),
@@ -65,11 +75,14 @@ export class JiraTicketProvider implements TicketProvider {
 
     const issues: Issue[] = (kids.issues ?? []).map((i) => {
       const raw = i.fields[this.spField];
+      const rawFallback = this.spFieldFallback ? i.fields[this.spFieldFallback] : undefined;
+      const points =
+        typeof raw === 'number' ? raw / 3600 : typeof rawFallback === 'number' ? rawFallback : null;
       return {
         key: i.key,
         summary: i.fields.summary,
         status: i.fields.status.name,
-        points: typeof raw === 'number' ? raw / 3600 : null,
+        points,
         resolutiondate: day(i.fields.resolutiondate),
         labels: i.fields.labels ?? [],
         components: (i.fields.components ?? []).map((c) => c.name),

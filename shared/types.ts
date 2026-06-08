@@ -46,6 +46,8 @@ export interface JiraTicketConfig {
   email: string;
   apiToken: string;
   spField: string;
+  /** Secondary field tried when spField is absent/non-numeric. Used raw (no ÷3600). */
+  spFieldFallback?: string;
   epics: string[];
 }
 

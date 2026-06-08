@@ -51,6 +51,7 @@ type RawConfig = {
       email?: string;
       api_token?: string;
       sp_field?: string;
+      sp_field_fallback?: string;
       epics?: string[];
     };
     github?: {
@@ -135,6 +136,7 @@ export const config: ServerConfig = {
           email: parsed.tickets.jira.email ?? '',
           apiToken: parsed.tickets.jira.api_token ?? '',
           spField: parsed.tickets.jira.sp_field ?? 'timeoriginalestimate',
+          spFieldFallback: parsed.tickets.jira.sp_field_fallback,
           epics: parsed.tickets.jira.epics ?? [],
         }
       : undefined,

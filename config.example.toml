@@ -26,6 +26,10 @@ api_token = ""
 # divided by 3600 → hours. Use a custom field id (e.g. "customfield_10016")
 # for true story points.
 sp_field  = "timeoriginalestimate"
+# Optional fallback field tried when sp_field is absent or non-numeric (e.g.
+# bug issue types that have Story Points but no time estimate). Used raw —
+# no ÷3600 conversion — so pair with a story-points custom field.
+# sp_field_fallback = "customfield_10020"
 # Epic keys to display on the dashboard
 epics = [
   "PROJ-1",
