@@ -4,8 +4,8 @@ A personal dashboard that pulls the tools around a work stream — Jira tickets,
 Argo deploys, Grafana dashboards — into one view. Tracks each piece of work from plan
 through deploy, surfaces cross-stream dependencies, and links out to the relevant places.
 
-Today it renders epic burndown charts and an optional service-parity matrix from Jira.
-Future work layers a local augmentation store on top, then GitHub / Argo / Grafana.
+Today it renders epic burndown charts, an optional service-parity matrix from Jira, and
+release status by polling GitHub Actions and Argo Rollouts (or standard Deployments) via kubectl.
 
 See [docs/PURPOSE.md](docs/PURPOSE.md) for the problem statement, non-goals, and intended audience.
 
@@ -26,7 +26,7 @@ MIT
 nvm use                 # picks up Node 24 from .nvmrc
 just install            # npm install
 just init               # creates config.toml from the example
-# edit config.toml — fill in jira.email + jira.api_token, set jira.epics, optional parity matrix
+# edit config.toml — fill in credentials, epics, and optional deploys/parity sections
 ```
 
 Jira API token: <https://id.atlassian.com/manage-profile/security/api-tokens>
@@ -56,6 +56,9 @@ typecheck/build.
 
 ## Configuration (`config.toml`)
 
+Copy `config.example.toml` to `config.toml` (gitignored) and fill in credentials.
+The example file is the annotated reference — the snippet below shows the overall shape.
+
 ```toml
 [ui]
 title    = "Project Orchestrator"
@@ -64,33 +67,50 @@ subtitle = "local"                # optional eyebrow text shown above the title
 [server]
 port = 5167                       # API port; Vite dev server uses 5173 separately
 
-[jira]
+# ---- Tickets (Jira or GitHub Issues) ----------------------------------------
+[tickets]
+provider = "jira"                 # "jira" | "github" | "none"
+
+[tickets.jira]
 base      = "https://your-org.atlassian.net"
 email     = "you@example.com"
-api_token = ""                    # https://id.atlassian.com/manage-profile/security/api-tokens
-sp_field  = "timeoriginalestimate" # or a custom field id, e.g. "customfield_10016"
+api_token = ""
+sp_field  = "timeoriginalestimate"
 epics     = ["PROJ-1", "PROJ-2"]
 
-# Optional service × module parity matrix for one of the epics above.
-# Leave epic = "" to disable.
-[parity]
-epic = "PROJ-1"
+# ---- Deploy status (GitHub Actions + kubectl/Argo Rollouts) -----------------
+[deploys]
+provider = "github-actions"       # "github-actions" | "none"
 
-[parity.svc_map]                  # Jira component name → service row label
+[deploys.github]
+token = "ghp_..."                 # PAT with Actions read access
+
+[deploys.defaults]                # applied to every service unless overridden
+owner                 = "myorg"
+mode                  = "trigger" # "complete" | "trigger"
+kubectl_resource_type = "argo-rollout" # "deployment" | "argo-rollout"
+workflow              = "ci-production.yaml"
+
+[deploys.services.service-a]     # key must match a parity.svc_map value
+# all fields inferred from key + defaults
+
+[deploys.services.service-b]
+workflow = "ci-prod-b.yaml"      # only override what differs
+
+[deploys.kubectl]
+# context = "prod-cluster"       # omit to use current-context
+
+# ---- Service × module parity matrix (optional) ------------------------------
+[parity]
+epic = "PROJ-1"                   # leave "" to disable
+
+[parity.svc_map]                  # Jira component → service key
 "Service A Core" = "service-a"
 
-[parity.svc_label_map]            # Jira label → service row label (fallback)
-ServiceB = "service-b"
-
-[parity.mod_map]                  # Jira label → module column label (order = column order)
+[parity.mod_map]                  # Jira label → module column (order = column order)
 module-a = "Module A"
 module-b = "Module B"
-
-[parity.na]                       # service → modules that are not applicable
-"service-a" = ["module-b"]
 ```
-
-See `config.example.toml` for the annotated reference.
 
 ## Layout
 
@@ -99,12 +119,19 @@ config.toml             # local, gitignored
 config.example.toml     # committed reference
 
 shared/
-  types.ts              # Epic, Issue, BurndownResult, config shapes — used by both sides
+  types.ts              # shared types used by both server and client
 
 server/
-  index.ts              # HTTP server, /api/config + /api/burndown, static
+  index.ts              # HTTP server — /api/config, /api/burndown, /api/state, /api/deploy-status
   config.ts             # TOML loader, normalizes shape
-  jira.ts               # Jira REST client
+  state.ts              # reads/writes data/state.json (per-ticket annotations)
+  providers/
+    types.ts            # TicketProvider, DeployProvider, MetricsProvider interfaces
+    registry.ts         # factory functions — createTicketProvider, createDeployProvider
+    tickets/            # jira.ts, github.ts, null.ts
+    deploys/
+      github-actions.ts # polls GHA workflow runs for release status
+      kubectl.ts        # shells out to kubectl (or kubectl argo rollouts) for rollout phase
 
 client/
   index.html
@@ -116,15 +143,15 @@ client/
     lib/                # format, burndown math, parity matrix builder, config context
                         # (+ *.test.ts files alongside)
 
-data/state.json         # (future) local augmentation: PR#, argo app, deploy ts, notes
+data/state.json         # local augmentation: PR#, deploy app, deploy timestamp, notes
 ```
 
 ## Roadmap
 
 - [x] Split out of single-file prototype, Vite build, TOML config
-- [ ] `data/state.json` augmentation layer — per-ticket PR number, Argo app, Grafana URL, deploy timestamp, notes
+- [x] `data/state.json` augmentation layer — per-ticket PR number, deploy app, deploy timestamp, notes
+- [x] Deploy status via GitHub Actions + kubectl / Argo Rollouts
 - [ ] Inline annotation UI to edit `state.json` from the dashboard
 - [ ] GitHub: PR state, checks, merge status
 - [ ] Cross-stream dependency view from Jira `issuelinks`
-- [ ] Argo CD: app sync + health status
 - [ ] Grafana: deep links per service

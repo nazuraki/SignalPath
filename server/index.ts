@@ -5,7 +5,7 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from './config.ts';
-import { createTicketProvider } from './providers/registry.ts';
+import { createDeployProvider, createTicketProvider } from './providers/registry.ts';
 import { readState, writeTicketState } from './state.ts';
 
 const PORT = config.server.port;
@@ -14,6 +14,7 @@ const DIST_DIR = join(__dirname, '..', 'dist');
 const isProd = process.env.NODE_ENV === 'production';
 
 const ticketProvider = createTicketProvider(config.tickets);
+const deployProvider = createDeployProvider(config.deploys);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -70,6 +71,31 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
   }
   if (req.method === 'GET' && req.url === '/api/state') {
     return json(res, 200, readState());
+  }
+  const deployStatusMatch =
+    req.method === 'GET' && req.url?.match(/^\/api\/deploy-status\/([^/]+)$/);
+  if (deployStatusMatch) {
+    const svcKey = decodeURIComponent(deployStatusMatch[1]);
+    try {
+      const status = await deployProvider.getReleaseStatus(svcKey);
+      if (!status) return json(res, 404, { error: `No deploy config for service "${svcKey}"` });
+      return json(res, 200, status);
+    } catch (e) {
+      console.error(e);
+      return json(res, 500, { error: (e as Error).message });
+    }
+  }
+  if (req.method === 'GET' && req.url === '/api/deploy-status') {
+    try {
+      const svcKeys = Object.keys(config.deploys.services);
+      const statuses = await Promise.all(svcKeys.map((k) => deployProvider.getReleaseStatus(k)));
+      const result: Record<string, unknown> = {};
+      for (let i = 0; i < svcKeys.length; i++) result[svcKeys[i]] = statuses[i];
+      return json(res, 200, result);
+    } catch (e) {
+      console.error(e);
+      return json(res, 500, { error: (e as Error).message });
+    }
   }
   const putMatch = req.method === 'PUT' && req.url?.match(/^\/api\/state\/([^/]+)$/);
   if (putMatch) {

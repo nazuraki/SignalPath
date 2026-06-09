@@ -61,7 +61,29 @@ type RawConfig = {
     };
     stage_map?: Record<string, string>;
   };
-  deploys?: { provider?: string };
+  deploys?: {
+    provider?: string;
+    github?: { token?: string };
+    kubectl?: { context?: string };
+    defaults?: {
+      owner?: string;
+      workflow?: string;
+      mode?: string;
+      kubectl_resource_type?: string;
+    };
+    services?: Record<
+      string,
+      {
+        owner?: string;
+        repo?: string;
+        workflow?: string;
+        mode?: string;
+        kubectl_resource_type?: string;
+        kubectl_deployment?: string;
+        kubectl_namespace?: string;
+      }
+    >;
+  };
   metrics?: { provider?: string };
   parity?: {
     epic?: string;
@@ -153,9 +175,66 @@ export const config: ServerConfig = {
         }
       : undefined,
   },
-  deploys: {
-    provider: 'none',
-  },
+  deploys: (() => {
+    const rawDeploys = parsed.deploys;
+    const provider = (rawDeploys?.provider ?? 'none') as ServerConfig['deploys']['provider'];
+    if (provider !== 'github-actions' && provider !== 'none') {
+      console.error(
+        `config.toml: [deploys] provider = "${provider}" is not supported. Valid: "github-actions", "none"`,
+      );
+      process.exit(1);
+    }
+    const defs = rawDeploys?.defaults ?? {};
+    const services: ServerConfig['deploys']['services'] = {};
+    for (const [key, svc] of Object.entries(rawDeploys?.services ?? {})) {
+      // Per-service values take precedence over defaults; name-derived values are last resort.
+      const mode = (svc.mode ?? defs.mode ?? 'complete') as string;
+      if (mode !== 'complete' && mode !== 'trigger') {
+        console.error(
+          `config.toml: [deploys.services.${key}] mode = "${mode}" — must be "complete" or "trigger"`,
+        );
+        process.exit(1);
+      }
+      const resourceType = svc.kubectl_resource_type ?? defs.kubectl_resource_type ?? 'deployment';
+      if (resourceType !== 'deployment' && resourceType !== 'argo-rollout') {
+        console.error(
+          `config.toml: [deploys.services.${key}] kubectl_resource_type = "${resourceType}" — must be "deployment" or "argo-rollout"`,
+        );
+        process.exit(1);
+      }
+      // repo, kubectl_deployment, kubectl_namespace all default to the service key.
+      const kubectlDeployment = svc.kubectl_deployment ?? key;
+      const kubectlNamespace = svc.kubectl_namespace ?? key;
+      if (mode === 'trigger' && (!kubectlDeployment || !kubectlNamespace)) {
+        console.error(
+          `config.toml: [deploys.services.${key}] mode = "trigger" requires kubectl_deployment and kubectl_namespace (or a service key to derive them from)`,
+        );
+        process.exit(1);
+      }
+      services[key] = {
+        owner: svc.owner ?? defs.owner ?? '',
+        repo: svc.repo ?? key,
+        workflow: svc.workflow ?? defs.workflow ?? '',
+        mode: mode as 'complete' | 'trigger',
+        kubectlResourceType: resourceType as 'deployment' | 'argo-rollout',
+        kubectlDeployment,
+        kubectlNamespace,
+      };
+    }
+    const defaults: ServerConfig['deploys']['defaults'] = {
+      owner: defs.owner,
+      workflow: defs.workflow,
+      mode: defs.mode as 'complete' | 'trigger' | undefined,
+      kubectlResourceType: defs.kubectl_resource_type as 'deployment' | 'argo-rollout' | undefined,
+    };
+    return {
+      provider,
+      github: rawDeploys?.github ? { token: rawDeploys.github.token ?? '' } : undefined,
+      kubectl: rawDeploys?.kubectl ? { context: rawDeploys.kubectl.context } : undefined,
+      defaults,
+      services,
+    } satisfies ServerConfig['deploys'];
+  })(),
   metrics: {
     provider: 'none',
   },

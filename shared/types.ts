@@ -72,8 +72,69 @@ export interface TicketsConfig {
   stageMap: Record<string, Stage>;
 }
 
+export type ReleasePhase =
+  | 'idle' // no recent run found
+  | 'running' // CI job in flight (or CI done, kubectl rollout in progress for trigger mode)
+  | 'complete' // released successfully
+  | 'failed' // CI or rollout failed
+  | 'unreachable'; // kubectl cluster not reachable (VPN down, etc.)
+
+export interface ReleaseStatus {
+  svcKey: string;
+  phase: ReleasePhase;
+  /** URL to the GHA run or Argo app */
+  runUrl?: string;
+  startedAt?: string;
+  completedAt?: string;
+  /** Human-readable detail, e.g. kubectl error message */
+  detail?: string;
+}
+
+export interface DeployServiceConfig {
+  owner: string;
+  repo: string;
+  /** GitHub Actions workflow filename, e.g. "release.yml" */
+  workflow: string;
+  /**
+   * "complete" — the CI job finishing means the release is done.
+   * "trigger"  — the CI job only starts the deploy; watch kubectl for completion.
+   */
+  mode: 'complete' | 'trigger';
+  /**
+   * "deployment"  — uses `kubectl rollout status deployment/<name>` (default)
+   * "argo-rollout" — uses `kubectl argo rollouts status <name>` (Argo Rollouts CRD)
+   */
+  kubectlResourceType?: 'deployment' | 'argo-rollout';
+  /** Resource name to watch (required when mode = "trigger") */
+  kubectlDeployment?: string;
+  /** kubectl namespace (required when mode = "trigger") */
+  kubectlNamespace?: string;
+}
+
+export interface GitHubActionsDeployConfig {
+  token: string;
+}
+
+export interface KubectlConfig {
+  /** If set, passes --context to every kubectl call. Defaults to current-context. */
+  context?: string;
+}
+
+/** Field-level defaults applied before per-service values. */
+export interface DeployDefaults {
+  owner?: string;
+  workflow?: string;
+  mode?: 'complete' | 'trigger';
+  kubectlResourceType?: 'deployment' | 'argo-rollout';
+}
+
 export interface DeploysConfig {
-  provider: 'none';
+  provider: 'github-actions' | 'none';
+  github?: GitHubActionsDeployConfig;
+  kubectl?: KubectlConfig;
+  defaults?: DeployDefaults;
+  /** service key (same keys as parity.svc_map values) → per-service CI config */
+  services: Record<string, DeployServiceConfig>;
 }
 
 export interface MetricsConfig {
