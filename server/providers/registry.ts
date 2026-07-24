@@ -1,4 +1,10 @@
-import type { DeploysConfig, MetricsConfig, TicketsConfig } from '../../shared/types.ts';
+import type {
+  DeploysConfig,
+  MetricsConfig,
+  ReleaseStatus,
+  TicketsConfig,
+} from '../../shared/types.ts';
+import { GitHubActionsDeployProvider } from './deploys/github-actions.ts';
 import { GitHubTicketProvider } from './tickets/github.ts';
 import { JiraTicketProvider } from './tickets/jira.ts';
 import { NullTicketProvider } from './tickets/null.ts';
@@ -21,8 +27,22 @@ export const createTicketProvider = (cfg: TicketsConfig): TicketProvider => {
   }
 };
 
-export const createDeployProvider = (_cfg: DeploysConfig): DeployProvider => {
-  return { name: 'none' };
+export const createDeployProvider = (cfg: DeploysConfig): DeployProvider => {
+  switch (cfg.provider) {
+    case 'github-actions':
+      if (!cfg.github)
+        throw new Error(
+          'deploys.provider = "github-actions" but [deploys.github] is missing from config',
+        );
+      return new GitHubActionsDeployProvider(cfg.github, cfg.services, cfg.kubectl);
+    case 'none':
+      return {
+        name: 'none',
+        getReleaseStatus: (_svcKey: string): Promise<ReleaseStatus | null> => Promise.resolve(null),
+      };
+    default:
+      throw new Error(`Unknown deploy provider: "${(cfg as DeploysConfig).provider}"`);
+  }
 };
 
 export const createMetricsProvider = (_cfg: MetricsConfig): MetricsProvider => {

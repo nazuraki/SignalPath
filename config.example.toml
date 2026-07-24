@@ -84,10 +84,51 @@ epics = [
 # "size/xl" = 8
 
 # ----------------------------------------------------------------------------
-# Deploy provider — reserved for future integrations (Argo CD, Docker, etc.)
+# Deploy provider
+# Supported: "github-actions" | "none"
+#
+# Associates each service (identified by the same keys produced by
+# parity.svc_map / parity.svc_label_map) with a GitHub Actions workflow that
+# cuts or triggers a release.
+#
+# mode = "complete"  — the GHA job finishing = the release is done.
+# mode = "trigger"   — the GHA job only kicks off the deploy (e.g. syncs Argo);
+#                      kubectl rollout status is polled for actual completion.
 # ----------------------------------------------------------------------------
 [deploys]
-provider = "none"
+provider = "github-actions"
+
+[deploys.github]
+# PAT with Actions read access (repo scope)
+token = "ghp_..."
+
+# Field-level defaults applied to every service unless overridden.
+# repo, kubectl_deployment, and kubectl_namespace all default to the service key if omitted.
+[deploys.defaults]
+# owner               = "myorg"
+# workflow            = "ci-production.yaml"
+# mode                = "trigger"
+# kubectl_resource_type = "argo-rollout"   # "deployment" (default) or "argo-rollout"
+
+# One [deploys.services.<key>] table per service (key must match parity.svc_map values).
+# Any field set here overrides the corresponding default above.
+# repo, kubectl_deployment, kubectl_namespace all fall back to <key> if omitted.
+
+# [deploys.services.service-a]
+# # All fields inherited from [deploys.defaults] — nothing to override.
+
+# [deploys.services.service-b]
+# workflow = "ci-prod-cart.yaml"   # only override what differs
+
+# [deploys.services.frontend]
+# mode     = "complete"   # GHA job itself deploys — no kubectl watch needed
+# workflow = "deploy.yml"
+
+# kubectl completion watcher — only used for services where mode = "trigger".
+# Shells out using the active kubeconfig.
+[deploys.kubectl]
+# Optional: override the kubeconfig context instead of using current-context.
+# context = "prod-cluster"
 
 # ----------------------------------------------------------------------------
 # Metrics provider — reserved for future integrations (Grafana, Datadog, etc.)
