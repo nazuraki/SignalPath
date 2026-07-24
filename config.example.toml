@@ -162,3 +162,41 @@ epic = ""
 # Service row → list of module column keys that are not applicable.
 [parity.na]
 # "service-a" = ["module-b-label"]
+
+# ----------------------------------------------------------------------------
+# Slack (optional) — powers the Previous Workday Report page.
+#
+# Requires a USER token (xoxp-…) with the `search:read` scope. Bot tokens
+# cannot call search.messages, which the report relies on for release posts
+# that don't tag you, cross-channel self-messages, and the reaction backstop.
+# config.toml is gitignored, so a personal user token is fine here.
+# ----------------------------------------------------------------------------
+# [slack]
+# user_token = "xoxp-..."
+# base       = "https://slack.com/api"   # optional override
+
+# ----------------------------------------------------------------------------
+# Previous Workday Report (optional)
+#
+# Gathers the same activity as the standup-prep skill for the previous workday
+# (Jira activity + GitHub Actions releases/jar-publishes + Slack signals) and
+# renders it read-only on the /report page. Enabled only when this section,
+# [slack].user_token, and [tickets.jira] credentials are all present.
+#
+# The GitHub Actions sweep reuses [deploys.github].token unless github_token is
+# set here. team_services classify as service releases; library_repos as jar
+# publishes. NOTE the repo-slug caveat: use "micronaut-toolkit", not
+# "gopuff-micronaut-toolkit" (the latter 404s).
+# ----------------------------------------------------------------------------
+# [report]
+# jira_project    = "COP"
+# jira_account_id = "61f0...eec32"        # your Jira accountId
+# github_login    = "your-gh-login"       # Actions actor filter
+# slack_user_id   = "U030BD5RDDF"         # your Slack user id
+# github_org      = "your-org"
+# team_services   = ["service-a", "service-b"]
+# library_repos   = ["some-toolkit", "some-rules"]
+# release_channel = "development-release"  # without leading '#'
+# release_bot     = "SRE-releasebot"
+# reaction_emojis = ["rocket-launch"]      # release-ownership backstop
+# github_token    = "ghp_..."              # optional; defaults to deploys.github.token

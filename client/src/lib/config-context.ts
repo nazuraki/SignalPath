@@ -7,6 +7,8 @@ export const DEFAULT_CONFIG: ClientConfig = {
   ticketBase: '',
   stageMap: {},
   parity: { epic: null, svcMap: {}, svcLabelMap: {}, modMap: {}, na: {} },
+  parityEnabled: false,
+  reportEnabled: false,
 };
 
 export const ConfigContext = createContext<ClientConfig>(DEFAULT_CONFIG);

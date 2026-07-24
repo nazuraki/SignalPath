@@ -1,5 +1,6 @@
 import type { Issue, JiraTicketConfig, Workstream } from '../../../shared/types.ts';
 import type { TicketProvider } from '../types.ts';
+import { JiraClient } from './jira-client.ts';
 
 interface JiraIssue {
   key: string;
@@ -22,18 +23,16 @@ interface JiraSearchResponse {
 const day = (s: string | null | undefined): string | null => (s ? s.slice(0, 10) : null);
 
 export class JiraTicketProvider implements TicketProvider {
-  private readonly auth: string;
-  private readonly base: string;
+  private readonly client: JiraClient;
   private readonly spField: string;
   private readonly spFieldFallback: string | undefined;
   private readonly epics: string[];
 
   constructor(cfg: JiraTicketConfig) {
-    this.base = cfg.base;
     this.spField = cfg.spField;
     this.spFieldFallback = cfg.spFieldFallback;
     this.epics = cfg.epics;
-    this.auth = `Basic ${Buffer.from(`${cfg.email}:${cfg.apiToken}`).toString('base64')}`;
+    this.client = new JiraClient(cfg.base, cfg.email, cfg.apiToken);
 
     if (!cfg.email || !cfg.apiToken) {
       console.warn(
@@ -42,21 +41,10 @@ export class JiraTicketProvider implements TicketProvider {
     }
   }
 
-  private async jget<T>(path: string): Promise<T> {
-    const r = await fetch(`${this.base}${path}`, {
-      headers: { Authorization: this.auth, Accept: 'application/json' },
-    });
-    if (!r.ok) {
-      const body = (await r.text()).slice(0, 300);
-      throw new Error(`Jira ${r.status} ${path}: ${body}`);
-    }
-    return (await r.json()) as T;
-  }
-
   private async fetchEpic(key: string): Promise<Workstream> {
     const [meta, kids] = await Promise.all([
-      this.jget<JiraIssue>(`/rest/api/3/issue/${key}?fields=summary,status,created,duedate`),
-      this.jget<JiraSearchResponse>(
+      this.client.get<JiraIssue>(`/rest/api/3/issue/${key}?fields=summary,status,created,duedate`),
+      this.client.get<JiraSearchResponse>(
         `/rest/api/3/search/jql?${new URLSearchParams({
           jql: `parent = ${key}`,
           fields: [

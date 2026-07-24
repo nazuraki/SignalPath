@@ -141,6 +141,42 @@ export interface MetricsConfig {
   provider: 'none';
 }
 
+export interface SlackConfig {
+  /** Slack user token (xoxp-…) with search:read — bot tokens can't use search.messages. */
+  userToken: string;
+  /** Slack Web API base. Defaults to https://slack.com/api. */
+  base: string;
+}
+
+/**
+ * Identity + team lists for the previous-workday report. Mirrors the constants
+ * the standup-prep skill hardcodes, moved into config.
+ */
+export interface ReportConfig {
+  /** Jira project key used in the activity JQL (e.g. "COP"). */
+  jiraProject: string;
+  /** Jira accountId for assignee/reporter/watcher JQL. */
+  jiraAccountId: string;
+  /** GitHub login for the Actions actor filter (e.g. "wasche"). */
+  githubLogin: string;
+  /** Slack user id (e.g. "U030BD5RDDF") for mention/self-message search. */
+  slackUserId: string;
+  /** GitHub org owning the service/library repos (e.g. "gopuff"). */
+  githubOrg: string;
+  /** Deployable service repo slugs — GHA runs here classify as service releases. */
+  teamServices: string[];
+  /** Library repo slugs — GHA runs here classify as jar publishes. */
+  libraryRepos: string[];
+  /** Release channel name for Slack search, without leading '#'. */
+  releaseChannel: string;
+  /** Release bot username whose "Deployed …" posts corroborate a release. */
+  releaseBot: string;
+  /** Reaction names (no colons) used as the release-ownership backstop. */
+  reactionEmojis: string[];
+  /** GitHub token for the Actions sweep. Falls back to deploys.github.token. */
+  githubToken?: string;
+}
+
 /** Server-side, full config. */
 export interface ServerConfig {
   ui: UIConfig;
@@ -151,6 +187,8 @@ export interface ServerConfig {
   deploys: DeploysConfig;
   metrics: MetricsConfig;
   parity: ParityConfig;
+  slack?: SlackConfig;
+  report?: ReportConfig;
 }
 
 /** Shape returned by GET /api/config. */
@@ -162,6 +200,10 @@ export interface ClientConfig {
   /** Provider status string (case-insensitive) → SignalPath stage. */
   stageMap: Record<string, Stage>;
   parity: ParityConfig;
+  /** True when a parity epic is configured — controls the Parity nav tab. */
+  parityEnabled: boolean;
+  /** True when the previous-workday report is fully configured — controls the Report nav tab. */
+  reportEnabled: boolean;
 }
 
 export interface BurndownPoint {
@@ -196,3 +238,49 @@ export interface TicketState {
 }
 
 export type StateMap = Record<string, TicketState>;
+
+// ---- Previous-workday report ------------------------------------------------
+
+export type ReportItemKind = 'jira' | 'release' | 'jar-publish' | 'slack';
+
+export interface ReportItem {
+  kind: ReportItemKind;
+  /** Jira issue key (kind='jira'). */
+  key?: string;
+  /** Jira summary (kind='jira'). */
+  summary?: string;
+  /** Jira status (kind='jira'). */
+  status?: string;
+  /** Service name (kind='release') or library repo (kind='jar-publish'). */
+  repo?: string;
+  /** Number of successful publish runs (kind='jar-publish'). */
+  count?: number;
+  /** Link to a GHA run (release/jar-publish) or Slack permalink (slack). */
+  url?: string;
+  /** Free-text detail (kind='slack'). */
+  text?: string;
+  /** ISO timestamp of the underlying event, when known. */
+  at?: string;
+}
+
+export interface ReportGroup {
+  /** Epic name, or a service name for Slack-only items with no epic. */
+  name: string;
+  /** Jira epic key, when this group corresponds to an epic. */
+  epicKey?: string;
+  items: ReportItem[];
+}
+
+export interface WorkdayReport {
+  /** YYYY-MM-DD start of the reported workday (inclusive). */
+  startDate: string;
+  /** YYYY-MM-DD end of the reported workday (inclusive). */
+  endDate: string;
+  /** True when the reported workday is a Friday (no service releases labeled). */
+  isFriday: boolean;
+  groups: ReportGroup[];
+  /** Pre-formatted Slack draft text for copy-to-clipboard. */
+  slackText: string;
+  /** Non-fatal issues (e.g. Slack scope failure) — rendered as a banner. */
+  warnings: string[];
+}

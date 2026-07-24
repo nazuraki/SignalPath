@@ -4,8 +4,17 @@ A personal dashboard that pulls the tools around a work stream — Jira tickets,
 Argo deploys, Grafana dashboards — into one view. Tracks each piece of work from plan
 through deploy, surfaces cross-stream dependencies, and links out to the relevant places.
 
-Today it renders epic burndown charts, an optional service-parity matrix from Jira, and
-release status by polling GitHub Actions and Argo Rollouts (or standard Deployments) via kubectl.
+It is organized into three pages:
+
+- **Dashboard** (`/`) — epic burndown charts and pipeline status, with release status polled from
+  GitHub Actions and Argo Rollouts (or standard Deployments) via kubectl.
+- **Parity** (`/parity`) — the optional service-parity matrix from Jira (shown when `[parity].epic`
+  is set).
+- **Report** (`/report`) — a read-only "previous workday report" that gathers the same activity as
+  the `standup-prep` skill (Jira activity + GitHub Actions releases/jar-publishes + Slack signals)
+  and renders a pasteable Slack draft. Shown when the `[slack]` and `[report]` config sections are
+  present alongside Jira credentials — see `config.example.toml`. The Slack integration needs a
+  **user token** (xoxp) with `search:read`; a bot token can't drive the searches the report uses.
 
 See [docs/PURPOSE.md](docs/PURPOSE.md) for the problem statement, non-goals, and intended audience.
 
