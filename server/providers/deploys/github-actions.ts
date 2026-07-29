@@ -6,6 +6,7 @@ import type {
   ReleaseStatus,
 } from '../../../shared/types.ts';
 import type { DeployProvider } from '../types.ts';
+import { ghGet } from './github-client.ts';
 import { kubectlRolloutPhase } from './kubectl.ts';
 
 interface GHARun {
@@ -38,28 +39,14 @@ export class GitHubActionsDeployProvider implements DeployProvider {
     this.kubectlCfg = kubectlCfg;
   }
 
-  private async ghGet<T>(path: string): Promise<T> {
-    const r = await fetch(`https://api.github.com${path}`, {
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    });
-    if (!r.ok) {
-      const body = (await r.text()).slice(0, 300);
-      throw new Error(`GitHub ${r.status} ${path}: ${body}`);
-    }
-    return (await r.json()) as T;
-  }
-
   async getReleaseStatus(svcKey: string): Promise<ReleaseStatus | null> {
     const svc = this.services[svcKey];
     if (!svc) return null;
 
     let run: GHARun | undefined;
     try {
-      const resp = await this.ghGet<GHARunsResponse>(
+      const resp = await ghGet<GHARunsResponse>(
+        this.token,
         `/repos/${svc.owner}/${svc.repo}/actions/workflows/${svc.workflow}/runs?per_page=1`,
       );
       run = resp.workflow_runs[0];

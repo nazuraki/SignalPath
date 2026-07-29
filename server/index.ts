@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { config } from './config.ts';
 import { createDeployProvider, createTicketProvider } from './providers/registry.ts';
+import { generateReport, isReportEnabled } from './report/index.ts';
 import { readState, writeTicketState } from './state.ts';
 
 const PORT = config.server.port;
@@ -58,7 +59,26 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
             : '',
       stageMap: config.tickets.stageMap,
       parity: config.parity,
+      parityEnabled: Boolean(config.parity.epic),
+      reportEnabled: isReportEnabled(config),
     });
+  }
+  const reportMatch = req.method === 'GET' && req.url?.match(/^\/api\/report(?:\?.*)?$/);
+  if (reportMatch) {
+    if (!isReportEnabled(config)) {
+      return json(res, 404, { error: 'Previous workday report is not configured' });
+    }
+    try {
+      const date = new URL(req.url ?? '', 'http://localhost').searchParams.get('date') ?? undefined;
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return json(res, 400, { error: 'date must be YYYY-MM-DD' });
+      }
+      const report = await generateReport(config, new Date(), date);
+      return json(res, 200, report);
+    } catch (e) {
+      console.error(e);
+      return json(res, 500, { error: (e as Error).message });
+    }
   }
   if (req.url === '/api/burndown') {
     try {

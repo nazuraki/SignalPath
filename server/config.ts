@@ -92,6 +92,23 @@ type RawConfig = {
     mod_map?: Record<string, string>;
     na?: Record<string, string[]>;
   };
+  slack?: {
+    user_token?: string;
+    base?: string;
+  };
+  report?: {
+    jira_project?: string;
+    jira_account_id?: string;
+    github_login?: string;
+    slack_user_id?: string;
+    github_org?: string;
+    team_services?: string[];
+    library_repos?: string[];
+    release_channel?: string;
+    release_bot?: string;
+    reaction_emojis?: string[];
+    github_token?: string;
+  };
 };
 
 let parsed: RawConfig;
@@ -148,7 +165,8 @@ export const config: ServerConfig = {
     subtitle: parsed.ui?.subtitle ?? '',
   },
   server: {
-    port: parsed.server?.port ?? 5167,
+    // PORT env wins (handy for containers / running a second instance), then config, then default.
+    port: Number(process.env.PORT) || parsed.server?.port || 5167,
   },
   tickets: {
     provider: ticketsProvider,
@@ -245,4 +263,25 @@ export const config: ServerConfig = {
     modMap: parsed.parity?.mod_map ?? {},
     na: parsed.parity?.na ?? {},
   },
+  slack: parsed.slack?.user_token
+    ? {
+        userToken: parsed.slack.user_token,
+        base: parsed.slack.base ?? 'https://slack.com/api',
+      }
+    : undefined,
+  report: parsed.report
+    ? {
+        jiraProject: parsed.report.jira_project ?? '',
+        jiraAccountId: parsed.report.jira_account_id ?? '',
+        githubLogin: parsed.report.github_login ?? '',
+        slackUserId: parsed.report.slack_user_id ?? '',
+        githubOrg: parsed.report.github_org ?? '',
+        teamServices: parsed.report.team_services ?? [],
+        libraryRepos: parsed.report.library_repos ?? [],
+        releaseChannel: (parsed.report.release_channel ?? '').replace(/^#/, ''),
+        releaseBot: parsed.report.release_bot ?? '',
+        reactionEmojis: parsed.report.reaction_emojis ?? ['rocket-launch'],
+        githubToken: parsed.report.github_token,
+      }
+    : undefined,
 };

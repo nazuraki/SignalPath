@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
+import { NavLink, Route, Routes } from 'react-router-dom';
 import type { ClientConfig, Workstream } from '../../shared/types.ts';
-import CombinedChart from './components/CombinedChart.tsx';
-import ParityMatrix from './components/ParityMatrix.tsx';
-import PipelineStatus from './components/PipelineStatus.tsx';
-import { computeBurndown, EPIC_COLORS, HOURS_PER_WEEK, remainingHours } from './lib/burndown.ts';
+import { computeBurndown, HOURS_PER_WEEK, remainingHours } from './lib/burndown.ts';
 import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
+import { DashboardContext } from './lib/dashboard-context.ts';
 import { fmt1 } from './lib/format.ts';
-import { countMissingLOE } from './lib/loe.ts';
+import DashboardPage from './pages/DashboardPage.tsx';
+import ParityPage from './pages/ParityPage.tsx';
+import ReportPage from './pages/ReportPage.tsx';
 
 interface BurndownResponse {
   workstreams: Workstream[];
@@ -55,6 +56,25 @@ function MoonIcon() {
     >
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
+  );
+}
+
+function NavTab({ to, label }: { to: string; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      end
+      className="uppercase tracking-[0.2em] transition-colors"
+      style={({ isActive }) => ({
+        fontFamily: MONO,
+        fontSize: 13,
+        paddingBottom: 4,
+        borderBottom: isActive ? '2px solid var(--c-accent)' : '2px solid transparent',
+        color: isActive ? 'var(--c-accent)' : 'var(--c-text-subtle)',
+      })}
+    >
+      {label}
+    </NavLink>
   );
 }
 
@@ -119,291 +139,126 @@ export default function App() {
   const totalDone = pairs.reduce((s, { bd }) => s + bd.doneCount, 0);
   const totalIssues = pairs.reduce((s, { bd }) => s + bd.issueCount, 0);
   const stalledCount = pairs.filter(({ bd }) => bd.pctComplete > 0 && bd.pctComplete < 100).length;
-  const missingLOE = countMissingLOE(pairs);
-
-  const handleRowClick = (key: string): void => {
-    setActiveWorkstream(activeWorkstream === key ? null : key);
-  };
-
-  const parityWorkstream = config.parity.epic
-    ? pairs.find((p) => p.workstream.key === config.parity.epic)?.workstream
-    : undefined;
 
   return (
     <ConfigContext.Provider value={config}>
-      <div
-        className="min-h-screen"
-        style={{ backgroundColor: 'var(--c-bg)', color: 'var(--c-text)' }}
+      <DashboardContext.Provider
+        value={{
+          pairs,
+          loading,
+          error,
+          lastUpdated,
+          refresh: fetchData,
+          activeWorkstream,
+          setActiveWorkstream,
+        }}
       >
-        {/* Top app bar */}
-        <header
-          className="sticky top-0 z-40 flex items-center justify-between border-b"
-          style={{
-            backgroundColor: 'var(--c-bg)',
-            borderColor: 'var(--c-border)',
-            height: 70,
-            paddingLeft: 32,
-            paddingRight: 32,
-          }}
+        <div
+          className="min-h-screen"
+          style={{ backgroundColor: 'var(--c-bg)', color: 'var(--c-text)' }}
         >
-          <div className="flex items-center gap-8 min-w-0">
-            <h2
-              className="font-semibold truncate"
-              style={{
-                color: 'var(--c-accent)',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontSize: 20,
-              }}
-            >
-              {config.ui.title}
-            </h2>
-            {config.ui.subtitle && (
-              <span
-                className="hidden md:inline uppercase tracking-[0.25em] text-neutral-500"
-                style={{ fontFamily: MONO, fontSize: 13 }}
-              >
-                {config.ui.subtitle}
-              </span>
-            )}
-            {data && stalledCount > 0 && (
-              <span
-                className="flex items-center gap-2 border"
+          {/* Top app bar */}
+          <header
+            className="sticky top-0 z-40 flex items-center justify-between border-b"
+            style={{
+              backgroundColor: 'var(--c-bg)',
+              borderColor: 'var(--c-border)',
+              height: 70,
+              paddingLeft: 32,
+              paddingRight: 32,
+            }}
+          >
+            <div className="flex items-center gap-8 min-w-0">
+              <h2
+                className="font-semibold truncate"
                 style={{
-                  backgroundColor: 'var(--c-error-bg)',
-                  borderColor: 'var(--c-error-border)',
-                  fontFamily: MONO,
-                  padding: '4px 10px',
+                  color: 'var(--c-accent)',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  fontSize: 20,
                 }}
               >
+                {config.ui.title}
+              </h2>
+              <nav className="flex items-center gap-6">
+                <NavTab to="/" label="Dashboard" />
+                {config.parityEnabled && <NavTab to="/parity" label="Parity" />}
+                {config.reportEnabled && <NavTab to="/report" label="Report" />}
+              </nav>
+              {data && stalledCount > 0 && (
                 <span
-                  className="rounded-full animate-pulse"
-                  style={{ backgroundColor: 'var(--c-error)', width: 8, height: 8 }}
-                />
-                <span
-                  className="font-bold uppercase"
-                  style={{ color: 'var(--c-error)', fontSize: 13 }}
-                >{`${stalledCount} active`}</span>
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3" style={{ fontFamily: MONO }}>
-            {data && pairs.length > 0 && (
-              <span
-                className="hidden md:inline text-neutral-500 tabular-nums"
-                style={{ fontSize: 14 }}
-              >
-                <span className="text-amber-400">{fmt1(totalRemaining)}</span>
-                <span className="text-neutral-600">{`/${Math.round(totalPoints)}h · `}</span>
-                <span className="text-neutral-300">{totalDone}</span>
-                <span className="text-neutral-600">{`/${totalIssues}`}</span>
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setDarkMode(!darkMode)}
-              className="icon-btn text-neutral-500 border flex items-center justify-center"
-              style={{ borderColor: 'var(--c-border)', padding: '8px 10px' }}
-              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {darkMode ? <SunIcon /> : <MoonIcon />}
-            </button>
-            <button
-              type="button"
-              onClick={fetchData}
-              disabled={loading}
-              className="icon-btn uppercase tracking-[0.25em] text-neutral-500 disabled:opacity-30 border"
-              style={{ borderColor: 'var(--c-border)', fontSize: 13, padding: '8px 16px' }}
-            >
-              {loading ? 'fetching…' : '↻ refresh'}
-            </button>
-          </div>
-        </header>
-
-        <main
-          className="w-full"
-          style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: 48 }}
-        >
-          {error && (
-            <div
-              className="border"
-              style={{
-                borderColor: 'var(--c-error-border)',
-                backgroundColor: 'var(--c-error-bg)',
-                color: 'var(--c-error)',
-                fontFamily: MONO,
-                padding: 20,
-              }}
-            >
-              <div
-                className="uppercase tracking-wider opacity-70"
-                style={{ fontSize: 13, marginBottom: 6 }}
-              >
-                load failed
-              </div>
-              <div className="whitespace-pre-wrap break-words" style={{ fontSize: 15 }}>
-                {error}
-              </div>
-            </div>
-          )}
-
-          {loading && !data && (
-            <div
-              className="flex flex-col items-center justify-center text-neutral-500"
-              style={{ paddingTop: 160, paddingBottom: 160 }}
-            >
-              <div
-                className="border rounded-full animate-spin"
-                style={{
-                  borderColor: 'var(--c-border)',
-                  borderTopColor: 'var(--c-accent)',
-                  width: 40,
-                  height: 40,
-                  marginBottom: 20,
-                }}
-              />
-              <p className="uppercase tracking-[0.25em]" style={{ fontFamily: MONO, fontSize: 13 }}>
-                fetching…
-              </p>
-            </div>
-          )}
-
-          {data && pairs.length === 0 && (
-            <div
-              className="text-center text-neutral-600"
-              style={{ fontFamily: MONO, paddingTop: 160, paddingBottom: 160 }}
-            >
-              <p className="uppercase tracking-widest" style={{ fontSize: 18 }}>
-                no workstreams configured
-              </p>
-              <p className="text-neutral-700" style={{ fontSize: 13, marginTop: 10 }}>
-                edit [tickets] in config.toml
-              </p>
-            </div>
-          )}
-
-          {data && pairs.length > 0 && (
-            <>
-              {/* Backpressure */}
-              <section>
-                <div
-                  className="flex items-center justify-between"
-                  style={{ paddingLeft: 6, marginBottom: 16 }}
-                >
-                  <div className="flex items-center gap-4">
-                    <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-accent)' }} />
-                    <span
-                      className="uppercase tracking-[0.25em] text-neutral-500"
-                      style={{ fontFamily: MONO, fontSize: 14 }}
-                    >
-                      Backpressure
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4" style={{ fontFamily: MONO }}>
-                    {pairs.map(({ workstream: ws }, i) => (
-                      <button
-                        type="button"
-                        key={ws.key}
-                        onClick={() => handleRowClick(ws.key)}
-                        className="flex items-center gap-2 transition-opacity"
-                        style={{
-                          opacity: activeWorkstream && activeWorkstream !== ws.key ? 0.3 : 1,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 16,
-                            height: 3,
-                            backgroundColor: EPIC_COLORS[i % EPIC_COLORS.length],
-                          }}
-                        />
-                        <span className="text-neutral-500" style={{ fontSize: 13 }}>
-                          {ws.key.split('/').pop() || ws.key}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {missingLOE.unresolved > 0 && (
-                  <div
-                    className="border flex items-center"
-                    style={{
-                      borderColor: 'var(--c-warn-border, #b45309)',
-                      backgroundColor: 'var(--c-warn-bg, rgba(245, 158, 11, 0.08))',
-                      color: 'var(--c-warn, #f59e0b)',
-                      fontFamily: MONO,
-                      fontSize: 13,
-                      padding: '8px 14px',
-                      marginBottom: 10,
-                      gap: 10,
-                    }}
-                    role="status"
-                  >
-                    <span aria-hidden="true">⚠</span>
-                    <span>
-                      {`${missingLOE.unresolved} unresolved ticket${missingLOE.unresolved === 1 ? '' : 's'} missing LOE — burndown estimate may be inaccurate`}
-                    </span>
-                  </div>
-                )}
-                <div
-                  className="border"
+                  className="flex items-center gap-2 border"
                   style={{
-                    borderColor: 'var(--c-border)',
-                    backgroundColor: 'var(--c-bg-card-60)',
-                    height: 360,
-                    padding: 10,
+                    backgroundColor: 'var(--c-error-bg)',
+                    borderColor: 'var(--c-error-border)',
+                    fontFamily: MONO,
+                    padding: '4px 10px',
                   }}
                 >
-                  <CombinedChart pairs={pairs} activeWorkstream={activeWorkstream} />
-                </div>
-              </section>
-
-              {/* Pipeline Status */}
-              <PipelineStatus
-                pairs={pairs}
-                activeWorkstream={activeWorkstream}
-                colors={EPIC_COLORS}
-                onRowClick={handleRowClick}
-              />
-
-              {/* Parity Matrix */}
-              {parityWorkstream && (
-                <section>
-                  <div
-                    className="flex items-center gap-4"
-                    style={{ paddingLeft: 6, marginBottom: 16 }}
-                  >
-                    <span style={{ width: 8, height: 8, backgroundColor: 'var(--c-accent)' }} />
-                    <span
-                      className="uppercase tracking-[0.25em] text-neutral-500"
-                      style={{ fontFamily: MONO, fontSize: 14 }}
-                    >
-                      Parity Matrix
-                    </span>
-                  </div>
-                  <div
-                    className="border"
-                    style={{
-                      borderColor: 'var(--c-border)',
-                      backgroundColor: 'var(--c-bg-card-60)',
-                    }}
-                  >
-                    <ParityMatrix workstream={parityWorkstream} />
-                  </div>
-                </section>
+                  <span
+                    className="rounded-full animate-pulse"
+                    style={{ backgroundColor: 'var(--c-error)', width: 8, height: 8 }}
+                  />
+                  <span
+                    className="font-bold uppercase"
+                    style={{ color: 'var(--c-error)', fontSize: 13 }}
+                  >{`${stalledCount} active`}</span>
+                </span>
               )}
-            </>
-          )}
+            </div>
+            <div className="flex items-center gap-3" style={{ fontFamily: MONO }}>
+              {data && pairs.length > 0 && (
+                <span
+                  className="hidden md:inline text-neutral-500 tabular-nums"
+                  style={{ fontSize: 14 }}
+                >
+                  <span className="text-amber-400">{fmt1(totalRemaining)}</span>
+                  <span className="text-neutral-600">{`/${Math.round(totalPoints)}h · `}</span>
+                  <span className="text-neutral-300">{totalDone}</span>
+                  <span className="text-neutral-600">{`/${totalIssues}`}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setDarkMode(!darkMode)}
+                className="icon-btn text-neutral-500 border flex items-center justify-center"
+                style={{ borderColor: 'var(--c-border)', padding: '8px 10px' }}
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? <SunIcon /> : <MoonIcon />}
+              </button>
+              <button
+                type="button"
+                onClick={fetchData}
+                disabled={loading}
+                className="icon-btn uppercase tracking-[0.25em] text-neutral-500 disabled:opacity-30 border"
+                style={{ borderColor: 'var(--c-border)', fontSize: 13, padding: '8px 16px' }}
+              >
+                {loading ? 'fetching…' : '↻ refresh'}
+              </button>
+            </div>
+          </header>
 
-          {lastUpdated && (
-            <p
-              className="text-neutral-700 text-center tracking-widest"
-              style={{ fontFamily: MONO, fontSize: 13 }}
-            >
-              {`updated ${lastUpdated.toLocaleTimeString()}`}
-            </p>
-          )}
-        </main>
-      </div>
+          <main
+            className="w-full"
+            style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: 48 }}
+          >
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/parity" element={<ParityPage />} />
+              <Route path="/report" element={<ReportPage />} />
+            </Routes>
+
+            {lastUpdated && (
+              <p
+                className="text-neutral-700 text-center tracking-widest"
+                style={{ fontFamily: MONO, fontSize: 13 }}
+              >
+                {`updated ${lastUpdated.toLocaleTimeString()}`}
+              </p>
+            )}
+          </main>
+        </div>
+      </DashboardContext.Provider>
     </ConfigContext.Provider>
   );
 }
