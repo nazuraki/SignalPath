@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { ReportGroup, ReportItem, WorkdayReport } from '../../../shared/types.ts';
+import { useState } from 'react';
+import type { ReportGroup, ReportItem } from '../../../shared/types.ts';
 import { useTicketUrl } from '../lib/config-context.ts';
+import { useReport } from '../lib/report-context.ts';
 
 const MONO = '"JetBrains Mono", monospace';
 
@@ -116,33 +117,8 @@ function Group({ group, ticketUrl }: { group: ReportGroup; ticketUrl: (k: string
 
 export default function ReportPage() {
   const ticketUrl = useTicketUrl();
-  const [report, setReport] = useState<WorkdayReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [date, setDate] = useState<string>('');
+  const { report, loading, error, date, setDate, run } = useReport();
   const [copied, setCopied] = useState(false);
-
-  const fetchReport = useCallback(async (d: string): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = d ? `/api/report?date=${encodeURIComponent(d)}` : '/api/report';
-      const r = await fetch(url);
-      if (!r.ok) {
-        const t = await r.text();
-        throw new Error(`HTTP ${r.status}: ${t.slice(0, 400)}`);
-      }
-      setReport((await r.json()) as WorkdayReport);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchReport('');
-  }, [fetchReport]);
 
   const copy = async (): Promise<void> => {
     if (!report) return;
@@ -184,7 +160,7 @@ export default function ReportPage() {
           />
           <button
             type="button"
-            onClick={() => fetchReport(date)}
+            onClick={run}
             disabled={loading}
             className="icon-btn uppercase tracking-[0.2em] text-neutral-500 disabled:opacity-30 border"
             style={{ borderColor: 'var(--c-border)', fontSize: 13, padding: '6px 14px' }}
@@ -244,6 +220,20 @@ export default function ReportPage() {
       {loading && !report && (
         <div className="text-neutral-600" style={{ fontFamily: MONO, padding: 40, fontSize: 13 }}>
           fetching…
+        </div>
+      )}
+
+      {!report && !loading && !error && (
+        <div
+          className="text-center text-neutral-600"
+          style={{ fontFamily: MONO, paddingTop: 100, paddingBottom: 100 }}
+        >
+          <p className="uppercase tracking-widest" style={{ fontSize: 16 }}>
+            no report yet
+          </p>
+          <p className="text-neutral-700" style={{ fontSize: 13, marginTop: 10 }}>
+            press run to fetch the previous workday
+          </p>
         </div>
       )}
 

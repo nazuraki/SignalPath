@@ -5,6 +5,7 @@ import { computeBurndown, HOURS_PER_WEEK, remainingHours } from './lib/burndown.
 import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
 import { DashboardContext } from './lib/dashboard-context.ts';
 import { fmt1 } from './lib/format.ts';
+import { ReportContext, useReportState } from './lib/report-context.ts';
 import DashboardPage from './pages/DashboardPage.tsx';
 import ParityPage from './pages/ParityPage.tsx';
 import ReportPage from './pages/ReportPage.tsx';
@@ -88,6 +89,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(
     () => localStorage.getItem('theme') !== 'light',
   );
+  const reportState = useReportState();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -242,11 +244,13 @@ export default function App() {
             className="w-full"
             style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: 48 }}
           >
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/parity" element={<ParityPage />} />
-              <Route path="/report" element={<ReportPage />} />
-            </Routes>
+            <ReportContext.Provider value={reportState}>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/parity" element={<ParityPage />} />
+                <Route path="/report" element={<ReportPage />} />
+              </Routes>
+            </ReportContext.Provider>
 
             {lastUpdated && (
               <p
