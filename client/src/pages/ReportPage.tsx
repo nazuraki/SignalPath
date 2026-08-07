@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ReportGroup, ReportItem } from '../../../shared/types.ts';
+import WarningBanner from '../components/WarningBanner.tsx';
 import { useTicketUrl } from '../lib/config-context.ts';
 import { useReport } from '../lib/report-context.ts';
 
@@ -197,24 +198,7 @@ export default function ReportPage() {
       )}
 
       {report?.warnings.map((w) => (
-        <div
-          key={w}
-          className="border flex items-center"
-          style={{
-            borderColor: 'var(--c-warn-border, #b45309)',
-            backgroundColor: 'var(--c-warn-bg, rgba(245, 158, 11, 0.08))',
-            color: 'var(--c-warn, #f59e0b)',
-            fontFamily: MONO,
-            fontSize: 13,
-            padding: '8px 14px',
-            marginBottom: 10,
-            gap: 10,
-          }}
-          role="status"
-        >
-          <span aria-hidden="true">⚠</span>
-          <span>{w}</span>
-        </div>
+        <WarningBanner key={w}>{w}</WarningBanner>
       ))}
 
       {loading && !report && (

@@ -1,3 +1,4 @@
+import { resolveServiceKey } from '../../../shared/service-key.ts';
 import type { Issue, ParityConfig, Workstream } from '../../../shared/types.ts';
 
 export interface ParityMatrix {
@@ -10,11 +11,7 @@ export const buildParityMatrix = (workstream: Workstream, parity: ParityConfig):
   const { svcMap, svcLabelMap, modMap } = parity;
   const cells: Record<string, Record<string, Issue>> = {};
   for (const issue of workstream.issues || []) {
-    const compName = (issue.components || []).find((c) => svcMap[c] !== undefined);
-    const svc =
-      compName !== undefined
-        ? svcMap[compName]
-        : (issue.labels || []).map((l) => svcLabelMap[l]).find((s) => s !== undefined);
+    const svc = resolveServiceKey(issue, parity);
     if (!svc) continue;
     const modLabel = (issue.labels || []).find((l) => modMap[l] !== undefined);
     if (!modLabel) continue;

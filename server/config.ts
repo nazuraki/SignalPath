@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'smol-toml';
-import type { ServerConfig, Stage } from '../shared/types.ts';
+import type { MetricQueryConfig, ServerConfig, Stage } from '../shared/types.ts';
 
 const DEFAULT_STAGE_MAP: Record<string, Stage> = {
   'ready for release': 'pending',
@@ -84,7 +84,23 @@ type RawConfig = {
       }
     >;
   };
-  metrics?: { provider?: string };
+  metrics?: {
+    provider?: string;
+    grafana?: {
+      base?: string;
+      token?: string;
+      datasource_uid?: string;
+      dashboard_url?: string;
+      dashboards?: Record<string, string>;
+      window?: string;
+      queries?: Array<{ key?: string; label?: string; expr?: string; unit?: string }>;
+    };
+  };
+  pipeline?: {
+    slack_match?: string;
+    slack_ttl?: number;
+    poll_seconds?: number;
+  };
   parity?: {
     epic?: string;
     svc_map?: Record<string, string>;
@@ -253,8 +269,53 @@ export const config: ServerConfig = {
       services,
     } satisfies ServerConfig['deploys'];
   })(),
-  metrics: {
-    provider: 'none',
+  metrics: (() => {
+    const rawMetrics = parsed.metrics;
+    const provider = (rawMetrics?.provider ?? 'none') as ServerConfig['metrics']['provider'];
+    if (provider !== 'grafana' && provider !== 'none') {
+      console.error(
+        `config.toml: [metrics] provider = "${provider}" is not supported. Valid: "grafana", "none"`,
+      );
+      process.exit(1);
+    }
+    if (provider === 'none') return { provider } satisfies ServerConfig['metrics'];
+
+    const g = rawMetrics?.grafana;
+    for (const field of ['base', 'token', 'datasource_uid'] as const) {
+      if (!g?.[field]) {
+        console.error(
+          `config.toml: [metrics] provider = "grafana" requires [metrics.grafana] ${field}`,
+        );
+        process.exit(1);
+      }
+    }
+    const queries: MetricQueryConfig[] = [];
+    for (const [i, q] of (g?.queries ?? []).entries()) {
+      if (!q.key || !q.expr) {
+        console.error(
+          `config.toml: [[metrics.grafana.queries]] #${i + 1} — both key and expr are required`,
+        );
+        process.exit(1);
+      }
+      queries.push({ key: q.key, label: q.label ?? q.key, expr: q.expr, unit: q.unit });
+    }
+    return {
+      provider,
+      grafana: {
+        base: g?.base ?? '',
+        token: g?.token ?? '',
+        datasourceUid: g?.datasource_uid ?? '',
+        dashboardUrl: g?.dashboard_url,
+        dashboards: g?.dashboards ?? {},
+        window: g?.window ?? '15m',
+        queries,
+      },
+    } satisfies ServerConfig['metrics'];
+  })(),
+  pipeline: {
+    slackMatch: parsed.pipeline?.slack_match ?? 'New release published',
+    slackTtl: parsed.pipeline?.slack_ttl ?? 120,
+    pollSeconds: parsed.pipeline?.poll_seconds ?? 30,
   },
   parity: {
     epic: parsed.parity?.epic || null,

@@ -9,6 +9,8 @@ export const DEFAULT_CONFIG: ClientConfig = {
   parity: { epic: null, svcMap: {}, svcLabelMap: {}, modMap: {}, na: {} },
   parityEnabled: false,
   reportEnabled: false,
+  pipelineEnabled: false,
+  pipelinePollSeconds: 30,
 };
 
 export const ConfigContext = createContext<ClientConfig>(DEFAULT_CONFIG);

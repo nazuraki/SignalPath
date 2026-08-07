@@ -2,29 +2,10 @@ import type { Issue, Stage, WorkstreamPair } from '../../../shared/types.ts';
 import { useConfig, useTicketUrl } from '../lib/config-context.ts';
 import { hasLOE } from '../lib/loe.ts';
 import { stageOf } from '../lib/stage.ts';
+import { STAGE_ACCENT, STAGE_LABEL } from '../lib/stage-style.ts';
 
 const MONO = '"JetBrains Mono", monospace';
 const INTER = 'Inter, system-ui, sans-serif';
-
-const STAGE_ACCENT: Record<Stage, string> = {
-  backlog: 'var(--c-backlog)',
-  progress: 'var(--c-accent)',
-  review: 'var(--c-review)',
-  pending: 'var(--c-pending)',
-  releasing: 'var(--c-releasing)',
-  released: 'var(--c-released)',
-  done: 'var(--c-done)',
-};
-
-const STAGE_LABEL: Record<Stage, string> = {
-  backlog: 'backlog',
-  progress: 'in prog',
-  review: 'review',
-  pending: 'pending',
-  releasing: 'releasing',
-  released: 'released',
-  done: 'done',
-};
 
 interface ChipProps {
   issue: Issue;

@@ -131,10 +131,76 @@ token = "ghp_..."
 # context = "prod-cluster"
 
 # ----------------------------------------------------------------------------
-# Metrics provider — reserved for future integrations (Grafana, Datadog, etc.)
+# Metrics provider
+# Supported: "grafana" | "none"
+#
+# Powers the stat tiles and dashboard links on the /pipeline page. Prometheus is
+# queried *through* Grafana's datasource proxy (POST /api/ds/query), so only
+# Grafana needs to be reachable and one token covers both links and numbers.
+# The token never leaves the server — the client only receives built dashboard URLs.
 # ----------------------------------------------------------------------------
 [metrics]
 provider = "none"
+
+# [metrics.grafana]
+# base           = "https://grafana.example.com"
+# # Service account token (glsa_…). A Viewer-role token is enough.
+# token          = "glsa_..."
+# # UID of the Prometheus datasource to query. Find it under
+# # Connections → Data sources → (your Prometheus) — it's in the page URL.
+# datasource_uid = "prometheus-prod"
+# # Dashboard deep link. {{svc}} and {{namespace}} are substituted per service.
+# dashboard_url  = "https://grafana.example.com/d/abc123/service?var-service={{svc}}"
+# # Instant-query lookback window.
+# window         = "15m"
+#
+# # Optional per-service override of dashboard_url, keyed by service key.
+# [metrics.grafana.dashboards]
+# "service-a" = "https://grafana.example.com/d/xyz/service-a"
+#
+# # One [[metrics.grafana.queries]] entry per stat tile, rendered in order.
+# # {{svc}} and {{namespace}} are substituted into expr. `namespace` comes from
+# # the service's deploys.kubectl_namespace (which defaults to the service key).
+# # A query that errors shows a dimmed "—" tile with the error as its tooltip —
+# # it never blanks the rest of the row.
+# [[metrics.grafana.queries]]
+# key   = "error_rate"
+# label = "5xx"
+# unit  = "%"
+# expr  = 'sum(rate(http_server_requests_seconds_count{namespace="{{namespace}}",status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count{namespace="{{namespace}}"}[5m])) * 100'
+#
+# [[metrics.grafana.queries]]
+# key   = "p99"
+# label = "p99"
+# unit  = "ms"
+# expr  = 'histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{namespace="{{namespace}}"}[5m]))) * 1000'
+#
+# [[metrics.grafana.queries]]
+# key   = "rps"
+# label = "rps"
+# expr  = 'sum(rate(http_server_requests_seconds_count{namespace="{{namespace}}"}[5m]))'
+
+# ----------------------------------------------------------------------------
+# Release-control pipeline (/pipeline page)
+#
+# Lists every ticket in a release-relevant stage (pending / releasing / released)
+# as a vertical card carrying its GitHub Actions run, Argo rollout percentage,
+# Slack release announcement, Grafana dashboard link, and metric tiles.
+#
+# The tab appears when [tickets] is configured and at least one of [deploys],
+# [metrics], or [slack] is. Each signal is optional and degrades to a warning
+# banner. Rollout percentages need a service with mode = "trigger"; the Slack
+# link needs [slack].user_token plus [report].release_channel.
+# ----------------------------------------------------------------------------
+[pipeline]
+# Text matched against posts in [report].release_channel to find the announcement.
+slack_match  = "New release published"
+# Seconds to cache a resolved Slack permalink per service. Slack's search API is
+# rate-limited, and the page re-polls while a rollout is live.
+slack_ttl    = 120
+# Client re-poll cadence in seconds. Polling only happens while something is
+# actually mid-flight, since each poll costs a kubectl call per service. 0 disables.
+poll_seconds = 30
 
 # ----------------------------------------------------------------------------
 # Service-parity matrix (optional)
