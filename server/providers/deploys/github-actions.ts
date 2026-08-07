@@ -4,10 +4,11 @@ import type {
   KubectlConfig,
   ReleasePhase,
   ReleaseStatus,
+  RolloutProgress,
 } from '../../../shared/types.ts';
 import type { DeployProvider } from '../types.ts';
 import { ghGet } from './github-client.ts';
-import { kubectlRolloutPhase } from './kubectl.ts';
+import { kubectlRolloutPhase, kubectlRolloutProgress } from './kubectl.ts';
 
 interface GHARun {
   id: number;
@@ -37,6 +38,23 @@ export class GitHubActionsDeployProvider implements DeployProvider {
     this.token = cfg.token;
     this.services = services;
     this.kubectlCfg = kubectlCfg;
+  }
+
+  /**
+   * Only "trigger"-mode services have a rollout to inspect — a "complete"-mode
+   * service is deployed by the GHA job itself and may have no k8s resource at all,
+   * so asking kubectl about it would just 404.
+   */
+  async getRolloutProgress(svcKey: string): Promise<RolloutProgress | null> {
+    const svc = this.services[svcKey];
+    if (!svc || svc.mode !== 'trigger') return null;
+    if (!svc.kubectlDeployment || !svc.kubectlNamespace) return null;
+    return kubectlRolloutProgress(
+      svc.kubectlDeployment,
+      svc.kubectlNamespace,
+      this.kubectlCfg,
+      svc.kubectlResourceType,
+    );
   }
 
   async getReleaseStatus(svcKey: string): Promise<ReleaseStatus | null> {

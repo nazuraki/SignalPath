@@ -1,10 +1,13 @@
 import type {
   DeploysConfig,
   MetricsConfig,
+  MetricValue,
   ReleaseStatus,
+  RolloutProgress,
   TicketsConfig,
 } from '../../shared/types.ts';
 import { GitHubActionsDeployProvider } from './deploys/github-actions.ts';
+import { GrafanaMetricsProvider } from './metrics/grafana.ts';
 import { GitHubTicketProvider } from './tickets/github.ts';
 import { JiraTicketProvider } from './tickets/jira.ts';
 import { NullTicketProvider } from './tickets/null.ts';
@@ -39,12 +42,29 @@ export const createDeployProvider = (cfg: DeploysConfig): DeployProvider => {
       return {
         name: 'none',
         getReleaseStatus: (_svcKey: string): Promise<ReleaseStatus | null> => Promise.resolve(null),
+        getRolloutProgress: (_svcKey: string): Promise<RolloutProgress | null> =>
+          Promise.resolve(null),
       };
     default:
       throw new Error(`Unknown deploy provider: "${(cfg as DeploysConfig).provider}"`);
   }
 };
 
-export const createMetricsProvider = (_cfg: MetricsConfig): MetricsProvider => {
-  return { name: 'none' };
+export const createMetricsProvider = (cfg: MetricsConfig): MetricsProvider => {
+  switch (cfg.provider) {
+    case 'grafana':
+      if (!cfg.grafana)
+        throw new Error(
+          'metrics.provider = "grafana" but [metrics.grafana] is missing from config',
+        );
+      return new GrafanaMetricsProvider(cfg.grafana);
+    case 'none':
+      return {
+        name: 'none',
+        dashboardUrl: (): string | null => null,
+        fetchMetrics: (): Promise<MetricValue[]> => Promise.resolve([]),
+      };
+    default:
+      throw new Error(`Unknown metrics provider: "${(cfg as MetricsConfig).provider}"`);
+  }
 };

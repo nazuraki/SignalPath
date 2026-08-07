@@ -5,9 +5,11 @@ import { computeBurndown, HOURS_PER_WEEK, remainingHours } from './lib/burndown.
 import { ConfigContext, DEFAULT_CONFIG } from './lib/config-context.ts';
 import { DashboardContext } from './lib/dashboard-context.ts';
 import { fmt1 } from './lib/format.ts';
+import { PipelineContext, usePipelineState } from './lib/pipeline-context.ts';
 import { ReportContext, useReportState } from './lib/report-context.ts';
 import DashboardPage from './pages/DashboardPage.tsx';
 import ParityPage from './pages/ParityPage.tsx';
+import PipelinePage from './pages/PipelinePage.tsx';
 import ReportPage from './pages/ReportPage.tsx';
 
 interface BurndownResponse {
@@ -90,6 +92,7 @@ export default function App() {
     () => localStorage.getItem('theme') !== 'light',
   );
   const reportState = useReportState();
+  const pipelineState = usePipelineState(config.pipelineEnabled, config.pipelinePollSeconds);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -183,6 +186,7 @@ export default function App() {
               </h2>
               <nav className="flex items-center gap-6">
                 <NavTab to="/" label="Dashboard" />
+                {config.pipelineEnabled && <NavTab to="/pipeline" label="Pipeline" />}
                 {config.parityEnabled && <NavTab to="/parity" label="Parity" />}
                 {config.reportEnabled && <NavTab to="/report" label="Report" />}
               </nav>
@@ -245,11 +249,14 @@ export default function App() {
             style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: 48 }}
           >
             <ReportContext.Provider value={reportState}>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/parity" element={<ParityPage />} />
-                <Route path="/report" element={<ReportPage />} />
-              </Routes>
+              <PipelineContext.Provider value={pipelineState}>
+                <Routes>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/pipeline" element={<PipelinePage />} />
+                  <Route path="/parity" element={<ParityPage />} />
+                  <Route path="/report" element={<ReportPage />} />
+                </Routes>
+              </PipelineContext.Provider>
             </ReportContext.Provider>
 
             {lastUpdated && (

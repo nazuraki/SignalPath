@@ -5,7 +5,12 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config } from './config.ts';
-import { createDeployProvider, createTicketProvider } from './providers/registry.ts';
+import { buildPipeline, createSlackReleaseFinder, isPipelineEnabled } from './pipeline/index.ts';
+import {
+  createDeployProvider,
+  createMetricsProvider,
+  createTicketProvider,
+} from './providers/registry.ts';
 import { generateReport, isReportEnabled } from './report/index.ts';
 import { readState, writeTicketState } from './state.ts';
 
@@ -16,6 +21,10 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const ticketProvider = createTicketProvider(config.tickets);
 const deployProvider = createDeployProvider(config.deploys);
+const metricsProvider = createMetricsProvider(config.metrics);
+// Constructed once: it owns the Slack permalink cache that keeps the pipeline
+// page's re-polling inside Slack's search rate limit.
+const slackReleaseFinder = createSlackReleaseFinder(config);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -61,7 +70,26 @@ const handleApi = async (req: IncomingMessage, res: ServerResponse): Promise<voi
       parity: config.parity,
       parityEnabled: Boolean(config.parity.epic),
       reportEnabled: isReportEnabled(config),
+      pipelineEnabled: isPipelineEnabled(config),
+      pipelinePollSeconds: config.pipeline.pollSeconds,
     });
+  }
+  if (req.method === 'GET' && req.url === '/api/pipeline') {
+    if (!isPipelineEnabled(config)) {
+      return json(res, 404, { error: 'Release-control pipeline is not configured' });
+    }
+    try {
+      const pipeline = await buildPipeline(config, {
+        tickets: ticketProvider,
+        deploys: deployProvider,
+        metrics: metricsProvider,
+        slackRelease: slackReleaseFinder,
+      });
+      return json(res, 200, pipeline);
+    } catch (e) {
+      console.error(e);
+      return json(res, 500, { error: (e as Error).message });
+    }
   }
   const reportMatch = req.method === 'GET' && req.url?.match(/^\/api\/report(?:\?.*)?$/);
   if (reportMatch) {

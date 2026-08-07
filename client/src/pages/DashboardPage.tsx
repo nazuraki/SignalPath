@@ -1,6 +1,7 @@
 import CombinedChart from '../components/CombinedChart.tsx';
 import DataGate from '../components/DataGate.tsx';
 import PipelineStatus from '../components/PipelineStatus.tsx';
+import WarningBanner from '../components/WarningBanner.tsx';
 import { EPIC_COLORS } from '../lib/burndown.ts';
 import { useDashboard } from '../lib/dashboard-context.ts';
 import { countMissingLOE } from '../lib/loe.ts';
@@ -71,25 +72,9 @@ export default function DashboardPage() {
               </div>
             </div>
             {missingLOE.unresolved > 0 && (
-              <div
-                className="border flex items-center"
-                style={{
-                  borderColor: 'var(--c-warn-border, #b45309)',
-                  backgroundColor: 'var(--c-warn-bg, rgba(245, 158, 11, 0.08))',
-                  color: 'var(--c-warn, #f59e0b)',
-                  fontFamily: MONO,
-                  fontSize: 13,
-                  padding: '8px 14px',
-                  marginBottom: 10,
-                  gap: 10,
-                }}
-                role="status"
-              >
-                <span aria-hidden="true">⚠</span>
-                <span>
-                  {`${missingLOE.unresolved} unresolved ticket${missingLOE.unresolved === 1 ? '' : 's'} missing LOE — burndown estimate may be inaccurate`}
-                </span>
-              </div>
+              <WarningBanner>
+                {`${missingLOE.unresolved} unresolved ticket${missingLOE.unresolved === 1 ? '' : 's'} missing LOE — burndown estimate may be inaccurate`}
+              </WarningBanner>
             )}
             <div
               className="border"

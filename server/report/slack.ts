@@ -59,9 +59,13 @@ export class SlackReportClient {
     this.base = cfg.base;
   }
 
-  /** Run one search.messages query. Throws on ok:false so callers can degrade. */
-  private async search(query: string): Promise<SlackMatch[]> {
-    const qs = new URLSearchParams({ query, count: '20', sort: 'timestamp' });
+  /**
+   * Run one search.messages query, newest first. Throws on ok:false so callers can
+   * degrade. Public because the /pipeline release lookup reuses it rather than
+   * standing up a second Slack client.
+   */
+  async searchMessages(query: string, count = 20): Promise<SlackMatch[]> {
+    const qs = new URLSearchParams({ query, count: String(count), sort: 'timestamp' });
     const r = await fetch(`${this.base}/search.messages?${qs}`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
@@ -91,7 +95,7 @@ export class SlackReportClient {
 
     const run = async (label: string, query: string): Promise<SlackMatch[]> => {
       try {
-        return await this.search(query);
+        return await this.searchMessages(query);
       } catch (e) {
         warnings.push(`Slack ${label} search failed: ${(e as Error).message}`);
         return [];

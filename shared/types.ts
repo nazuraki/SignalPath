@@ -137,8 +137,47 @@ export interface DeploysConfig {
   services: Record<string, DeployServiceConfig>;
 }
 
+/** One stat tile on the Pipeline page, backed by a single PromQL expression. */
+export interface MetricQueryConfig {
+  /** Stable identifier, also the /api/ds/query refId. */
+  key: string;
+  /** Display label above the value. */
+  label: string;
+  /** PromQL. `{{svc}}` and `{{namespace}}` are substituted per service. */
+  expr: string;
+  /** Display suffix, e.g. "ms", "%", "rps". */
+  unit?: string;
+}
+
+export interface GrafanaMetricsConfig {
+  /** Grafana base URL, no trailing slash. */
+  base: string;
+  /** Service-account token (glsa_…). Viewer role suffices. Never sent to the client. */
+  token: string;
+  /** UID of the Prometheus datasource to query through Grafana. */
+  datasourceUid: string;
+  /** Dashboard deep-link template. `{{svc}}` / `{{namespace}}` are substituted. */
+  dashboardUrl?: string;
+  /** Per-service override of dashboardUrl, keyed by service key. */
+  dashboards: Record<string, string>;
+  /** Instant-query lookback window, e.g. "15m". */
+  window: string;
+  queries: MetricQueryConfig[];
+}
+
 export interface MetricsConfig {
-  provider: 'none';
+  provider: 'grafana' | 'none';
+  grafana?: GrafanaMetricsConfig;
+}
+
+/** Tuning for the /pipeline release-control page. */
+export interface PipelineConfig {
+  /** Text matched against posts in [report].release_channel to find the release announcement. */
+  slackMatch: string;
+  /** Seconds to cache a resolved Slack permalink per service. */
+  slackTtl: number;
+  /** Client re-poll cadence, in seconds, while a rollout is live. 0 disables polling. */
+  pollSeconds: number;
 }
 
 export interface SlackConfig {
@@ -189,6 +228,7 @@ export interface ServerConfig {
   parity: ParityConfig;
   slack?: SlackConfig;
   report?: ReportConfig;
+  pipeline: PipelineConfig;
 }
 
 /** Shape returned by GET /api/config. */
@@ -204,6 +244,10 @@ export interface ClientConfig {
   parityEnabled: boolean;
   /** True when the previous-workday report is fully configured — controls the Report nav tab. */
   reportEnabled: boolean;
+  /** True when the release-control pipeline has at least one signal source — controls the Pipeline nav tab. */
+  pipelineEnabled: boolean;
+  /** Client re-poll cadence in seconds while a rollout is live. 0 disables polling. */
+  pipelinePollSeconds: number;
 }
 
 export interface BurndownPoint {
@@ -269,6 +313,81 @@ export interface ReportGroup {
   /** Jira epic key, when this group corresponds to an epic. */
   epicKey?: string;
   items: ReportItem[];
+}
+
+// ---- Release-control pipeline ------------------------------------------------
+
+/** Which derivation rule produced `RolloutProgress.percent`. */
+export type RolloutPercentSource = 'stable' | 'canary-weight' | 'step-weight' | 'replicas';
+
+/**
+ * Live rollout detail read from the Argo Rollout (or Deployment) resource.
+ * Every field is optional: a resource mid-reconcile carries almost no status.
+ */
+export interface RolloutProgress {
+  /** 0–100. Null when no rule could derive it — render "—", never a fake 0%. */
+  percent: number | null;
+  /** How `percent` was derived. Null when percent is null. */
+  source: RolloutPercentSource | null;
+  /** Argo `status.phase`: Healthy | Progressing | Paused | Degraded | ScaledDown. */
+  argoPhase?: string;
+  /** Argo `status.message`, when the controller set one. */
+  message?: string;
+  /** True when the rollout is paused awaiting promotion. */
+  paused?: boolean;
+  currentStepIndex?: number;
+  totalSteps?: number;
+  replicas?: number;
+  updatedReplicas?: number;
+  availableReplicas?: number;
+  /** Set when the resource could not be read (cluster unreachable, absent, unparsable). */
+  error?: string;
+  /**
+   * True when `error` is a connectivity failure rather than a problem with this
+   * specific resource. Lets the UI raise one banner for the shared root cause
+   * instead of one per service.
+   */
+  unreachable?: boolean;
+}
+
+/** One stat tile's resolved value. */
+export interface MetricValue {
+  key: string;
+  label: string;
+  /** Null when the query failed or returned no series. */
+  value: number | null;
+  unit?: string;
+  /** Why `value` is null, for a tooltip. */
+  error?: string;
+}
+
+/** An external link resolved at request time (currently the Slack release post). */
+export interface ReleaseLink {
+  url: string;
+  text: string;
+  /** ISO timestamp of the linked event, when known. */
+  at?: string;
+}
+
+export interface PipelineItem {
+  issue: Issue;
+  /** Key of the workstream (epic) the issue belongs to. */
+  workstreamKey: string;
+  workstreamSummary: string;
+  stage: Stage;
+  /** Resolved deploy-service key, or null when the issue maps to no service. */
+  svcKey: string | null;
+  release?: ReleaseStatus;
+  rollout?: RolloutProgress;
+  grafanaUrl?: string;
+  slackRelease?: ReleaseLink;
+  metrics?: MetricValue[];
+}
+
+export interface PipelineResponse {
+  items: PipelineItem[];
+  /** Non-fatal issues (unreachable cluster, Slack scope failure) — rendered as banners. */
+  warnings: string[];
 }
 
 export interface WorkdayReport {
