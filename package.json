@@ -24,7 +24,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.3",
     "recharts": "^2.12.7",
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.7.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
