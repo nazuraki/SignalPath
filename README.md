@@ -29,7 +29,7 @@ MIT
 
 ## Stack
 
-- **Server:** Node (>= 24), TypeScript via `tsx`, plain HTTP, no framework
+- **Server:** Node (>= 26), TypeScript via `tsx`, plain HTTP, no framework
 - **Client:** React 18 + Recharts, built with Vite, TypeScript
 - **Config + credentials:** TOML (`config.toml`), gitignored — copy from `config.example.toml`
 - **Tooling:** Biome (lint + format), tsc (typecheck), Vitest (tests), GitHub Actions (CI)
@@ -37,7 +37,7 @@ MIT
 ## Setup
 
 ```sh
-nvm use                 # picks up Node 24 from .nvmrc
+nvm use                 # picks up Node 26 from .nvmrc
 just install            # npm install
 just init               # creates config.toml from the example
 # edit config.toml — fill in credentials, epics, and optional deploys/parity sections
